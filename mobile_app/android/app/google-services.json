@@ -1,0 +1,69 @@
+{
+  "project_info": {
+    "project_number": "439039516778",
+    "firebase_url": "https://shilpsetu-2-default-rtdb.firebaseio.com",
+    "project_id": "shilpsetu-2",
+    "storage_bucket": "shilpsetu-2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:439039516778:android:a62a86185f37253693aa13",
+        "android_client_info": {
+          "package_name": "in.gov.shilpsetu.shilpsetu_ai"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "439039516778-j45cqa82h0iv4bqmo5eikcta4jjl50mb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDhNe5ZC-SPKkhTmsacJP4NwKI4gEXrl_Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "439039516778-j45cqa82h0iv4bqmo5eikcta4jjl50mb.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:439039516778:android:03884803b52f714a93aa13",
+        "android_client_info": {
+          "package_name": "shilp.setu_09"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "439039516778-j45cqa82h0iv4bqmo5eikcta4jjl50mb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDhNe5ZC-SPKkhTmsacJP4NwKI4gEXrl_Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "439039516778-j45cqa82h0iv4bqmo5eikcta4jjl50mb.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

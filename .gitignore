@@ -1,0 +1,21 @@
+# Credentials and secrets
+service_account.json
+*.json.key
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+
+# Android
+.gradle/
+local.properties
+*.apk

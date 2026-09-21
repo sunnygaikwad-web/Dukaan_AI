@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme {
+  --font-headline: "Quicksand", "Plus Jakarta Sans", sans-serif;
+  --font-body: "Vollkorn", serif;
+  --font-label: "IBM Plex Serif", serif;
+  --font-sans: "Plus Jakarta Sans", sans-serif;
+
+  --color-primary: #964407;
+  --color-primary-container: #b65c21;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #fffbff;
+  
+  --color-surface: #fff8f4;
+  --color-surface-container: #f8ece1;
+  --color-surface-container-low: #fef1e7;
+  --color-surface-container-high: #f2e6dc;
+  --color-surface-container-highest: #ece0d6;
+  --color-surface-container-lowest: #ffffff;
+  
+  --color-on-surface: #201b14;
+  --color-on-surface-variant: #554339;
+  --color-outline: #887368;
+  --color-outline-variant: #dbc1b5;
+  
+  --color-secondary: #645d57;
+  --color-secondary-container: #e9ded6;
+  --color-on-secondary-container: #69615b;
+  
+  --color-tertiary: #944242;
+  --color-tertiary-container: #b35a59;
+  --color-tertiary-fixed: #ffdad8;
+  --color-on-tertiary-fixed: #3f0308;
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
