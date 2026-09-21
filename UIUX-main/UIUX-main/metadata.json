@@ -1,6 +1,0 @@
-{
-  "name": "ShilpMitra AI",
-  "description": "Artisan empowerment platform with AI cataloging, multilingual translation, heritage storytelling, fair pricing engine, and digital mela marketplace.",
-  "requestFramePermissions": ["camera", "microphone"],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
