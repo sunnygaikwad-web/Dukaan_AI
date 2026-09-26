@@ -6,7 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/providers/user_profile_provider.dart';
 import '../../../core/providers/product_provider.dart';
-import '../../../core/constants/app_localizations.dart';
+import '../../../main.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -15,7 +15,27 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  String _t(String lang, {required String en, required String mr, required String hi}) {
+    if (lang == 'mr') return mr;
+    if (lang == 'hi') return hi;
+    return en;
+  }
+
   @override
   Widget build(BuildContext context) {
     final profileProvider = context.watch<UserProfileProvider>();
@@ -24,856 +44,404 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final lang = profileProvider.selectedLanguage;
     final activeProductsCount = productProvider.products.length;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
-          // ─── App Bar ─────────────────────────────────────────────────────
-          SliverAppBar(
-            pinned: true,
-            backgroundColor: AppColors.background,
-            elevation: 0,
-            title: Text(
-              AppLocalizations.tr('nav_profile', lang),
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            actions: [
-              IconButton(
-                icon: Icon(Icons.share_outlined, color: AppColors.textPrimary),
-                onPressed: () => _showSharePortfolioSheet(context, profile),
-              ),
-              IconButton(
-                icon: Icon(Icons.settings_outlined, color: AppColors.textPrimary),
-                onPressed: () => _showSettingsSheet(),
-              ),
-            ],
-          ),
-
-          SliverToBoxAdapter(
-            child: Column(
-              children: [
-                // ─── Direct Top 1-Tap Language Bar ──────────────────────────
-                _buildTopLanguageBar(context, profileProvider, lang),
-
-                // ─── Official Artisan Digital Pehchan Card ───────────────────
-                _buildArtisanPehchanCard(context, profile, lang, activeProductsCount),
-
-                // ─── Action Buttons (Edit & Share) ──────────────────────────
-                _buildActionButtons(context, profile, lang),
-
-                // ─── 4 Essential Info Tiles (Phone, Craft, Bank, Shop) ───────
-                _buildEssentialInfoTiles(context, profile, lang, activeProductsCount),
-
-                // ─── Simple Earnings & Trust Card ───────────────────────────
-                _buildSimpleEarningsCard(context, profile, lang),
-
-                // ─── 1-Tap Toll-Free Helpline & WhatsApp Support ─────────────
-                _buildHelplineCard(context, lang),
-
-                // ─── Government Welfare Schemes ──────────────────────────────
-                _buildGovernmentSchemes(context, lang),
-
-                // ─── Buyer Reviews ──────────────────────────────────────────
-                _buildReviews(profile, lang),
-
-                // ─── Sign Out ───────────────────────────────────────────────
-                _buildSignOutSection(context, lang),
-
-                const SizedBox(height: 100),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Vernacular Language Helper ──────────────────────────────────────────────
-  String _t(String lang, {required String en, required String mr, required String hi}) {
-    if (lang == 'mr') return mr;
-    if (lang == 'hi') return hi;
-    return en;
-  }
-
-  // ── Top 1-Tap Language Bar ──────────────────────────────────────────────────
-  Widget _buildTopLanguageBar(BuildContext context, UserProfileProvider provider, String currentLang) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.outlineVariant),
-        boxShadow: const [
-          BoxShadow(color: AppColors.cardShadow, blurRadius: 4, offset: Offset(0, 2)),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.translate_rounded, size: 20, color: AppColors.primary),
-          const SizedBox(width: 8),
-          Text(
-            _t(currentLang, en: 'Language:', mr: 'भाषा निवडा:', hi: 'भाषा चुनें:'),
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
-          ),
-          const Spacer(),
-          _buildLanguagePill('mr', 'मराठी', currentLang, provider),
-          const SizedBox(width: 6),
-          _buildLanguagePill('hi', 'हिंदी', currentLang, provider),
-          const SizedBox(width: 6),
-          _buildLanguagePill('en', 'English', currentLang, provider),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLanguagePill(String code, String label, String currentLang, UserProfileProvider provider) {
-    final isSelected = currentLang == code;
-    return InkWell(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        provider.setLanguage(code);
-      },
-      borderRadius: BorderRadius.circular(20),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : AppColors.surfaceContainer,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.outlineVariant,
-            width: isSelected ? 1.5 : 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-            color: isSelected ? Colors.white : AppColors.textSecondary,
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── Official Artisan Digital Pehchan Card ──────────────────────────────────
-  Widget _buildArtisanPehchanCard(BuildContext context, UserProfileModel profile, String lang, int activeProductsCount) {
     final initials = profile.name.trim().isNotEmpty
-        ? profile.name
-            .trim()
-            .split(RegExp(r'\s+'))
-            .where((s) => s.isNotEmpty)
-            .map((e) => e[0])
-            .take(2)
-            .join()
-            .toUpperCase()
+        ? profile.name.trim().split(RegExp(r'\s+')).where((s) => s.isNotEmpty).map((e) => e[0]).take(2).join().toUpperCase()
         : 'A';
-
     final pehchanId = 'MH-ART-${profile.id.replaceAll(RegExp(r'[^0-9]'), '').padRight(4, '8').substring(0, 4)}';
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFFFDF8),
-            Color(0xFFFFF6E8),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE5C096), width: 1.5),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x1A8B4513),
-            blurRadius: 14,
-            offset: Offset(0, 4),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F4F0),
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          // ── Hero App Bar ──────────────────────────────────────────────────
+          SliverAppBar(
+            expandedHeight: 255,
+            pinned: true,
+            automaticallyImplyLeading: false,
+            backgroundColor: AppColors.primary,
+            elevation: 0,
+            flexibleSpace: FlexibleSpaceBar(
+              background: _buildHeroCover(context, profile, lang, initials, pehchanId, profileProvider, activeProductsCount),
+            ),
+          ),
+
+          // ── Stats Row ─────────────────────────────────────────────────────
+          SliverToBoxAdapter(
+            child: _buildStatsRow(context, lang, activeProductsCount, profile),
+          ),
+
+          // ── Tab Bar ───────────────────────────────────────────────────────
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _SliverTabBarDelegate(
+              TabBar(
+                controller: _tabController,
+                labelColor: AppColors.primary,
+                unselectedLabelColor: AppColors.textLight,
+                indicatorColor: AppColors.primary,
+                indicatorWeight: 3,
+                labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                tabs: [
+                  Tab(text: _t(lang, en: 'Profile', mr: 'प्रोफाइल', hi: 'प्रोफाइल')),
+                  Tab(text: _t(lang, en: 'Schemes', mr: 'योजना', hi: 'योजनाएं')),
+                  Tab(text: _t(lang, en: 'Support', mr: 'मदत', hi: 'सहायता')),
+                ],
+                padding: EdgeInsets.zero,
+              ),
+            ),
           ),
         ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(22),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        body: TabBarView(
+          controller: _tabController,
           children: [
-            // Top Tricolor Accent Stripe
-            Row(
-              children: [
-                Expanded(child: Container(height: 4, color: const Color(0xFFFF9933))),
-                Expanded(child: Container(height: 4, color: Colors.white)),
-                Expanded(child: Container(height: 4, color: const Color(0xFF138808))),
-              ],
-            ),
+            _buildProfileTab(context, profile, lang, activeProductsCount, pehchanId),
+            _buildSchemesTab(context, lang),
+            _buildSupportTab(context, lang),
+          ],
+        ),
+      ),
+    );
+  }
 
-            // Card Header Ribbon
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF8B4513).withValues(alpha: 0.08),
-                border: Border(
-                  bottom: BorderSide(color: const Color(0xFFE5C096).withValues(alpha: 0.6)),
-                ),
-              ),
-              child: Row(
-                children: [
-                  const Text('🇮🇳', style: TextStyle(fontSize: 16)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _t(lang,
-                            en: 'GOVT. RECOGNIZED ARTISAN PEHCHAN CARD',
-                            mr: 'भारत सरकार मान्यताप्राप्त कारागीर ओळखपत्र',
-                            hi: 'भारत सरकार मान्यताप्राप्त कारीगर पहचान पत्र'
-                          ),
-                          style: const TextStyle(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF6B3004),
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                        Text(
-                          _t(lang,
-                            en: 'Ministry of Textiles & ShilpSetu Digital Registry',
-                            mr: 'वस्त्रोद्योग मंत्रालय व शिल्पसेतू नोंदणीकृत',
-                            hi: 'वस्त्र मंत्रालय एवं शिल्पसेतु पंजीकृत'
-                          ),
-                          style: TextStyle(
-                            fontSize: 9.5,
-                            color: Colors.brown.shade600,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade700,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.verified, size: 12, color: Colors.white),
-                        const SizedBox(width: 4),
-                        Text(
-                          _t(lang, en: 'VERIFIED', mr: 'प्रमाणित', hi: 'सत्यापित'),
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+  // ── Hero Cover ──────────────────────────────────────────────────────────────
+  Widget _buildHeroCover(BuildContext context, UserProfileModel profile, String lang, String initials, String pehchanId, UserProfileProvider provider, int productCount) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF8B2500), Color(0xFFB84A00), Color(0xFFD97706)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Decorative circles
+          Positioned(right: -30, top: -30, child: Container(width: 160, height: 160, decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: 0.06)))),
+          Positioned(left: -20, bottom: 30, child: Container(width: 100, height: 100, decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: 0.04)))),
 
-            // Card Body (Avatar, Name, Craft, Location, Pehchan ID)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Photo with camera edit badge
-                  Stack(
+                  // Top bar: Language pills (left) + Action buttons (right)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      // Language Selector Pills
                       Container(
-                        padding: const EdgeInsets.all(3),
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
                         decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.primary, width: 2),
+                          color: Colors.black.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                        child: CircleAvatar(
-                          radius: 38,
-                          backgroundColor: AppColors.primaryFixed,
-                          child: Text(
-                            initials,
-                            style: const TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 26,
-                            ),
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildLangPill('मराठी', 'mr', provider),
+                            const SizedBox(width: 4),
+                            _buildLangPill('हिंदी', 'hi', provider),
+                            const SizedBox(width: 4),
+                            _buildLangPill('EN', 'en', provider),
+                          ],
                         ),
                       ),
-                      Positioned(
-                        right: 0,
-                        bottom: 0,
-                        child: GestureDetector(
-                          onTap: () => _showEditProfileSheet(context, profile),
-                          child: Container(
-                            width: 28,
-                            height: 28,
+
+                      // Quick action buttons
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildHeaderActionBtn(
+                            icon: Icons.share_rounded,
+                            tooltip: _t(lang, en: 'Share Profile', mr: 'माहिती शेअर करा', hi: 'प्रोफाइल शेयर करें'),
+                            onTap: () => _showShareSheet(context, profile, lang),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildHeaderActionBtn(
+                            icon: Icons.settings_outlined,
+                            tooltip: _t(lang, en: 'Settings', mr: 'सेटिंग्ज', hi: 'सेटिंग्स'),
+                            onTap: () => _showSettingsSheet(context, lang, provider),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildHeaderActionBtn(
+                            icon: Icons.logout_rounded,
+                            tooltip: _t(lang, en: 'Sign Out', mr: 'बाहेर पडा', hi: 'साइन आउट'),
+                            color: Colors.red.shade700.withValues(alpha: 0.85),
+                            onTap: () => _confirmSignOut(context, lang),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // Avatar
+                      Stack(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(3),
                             decoration: BoxDecoration(
-                              color: AppColors.primary,
                               shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
-                              boxShadow: const [
-                                BoxShadow(color: Colors.black26, blurRadius: 4),
+                              border: Border.all(color: Colors.white, width: 2.5),
+                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 12)],
+                            ),
+                            child: CircleAvatar(
+                              radius: 42,
+                              backgroundColor: Colors.white.withValues(alpha: 0.2),
+                              child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 28)),
+                            ),
+                          ),
+                          Positioned(
+                            right: 2, bottom: 2,
+                            child: GestureDetector(
+                              onTap: () => _showEditProfileSheet(context, profile, lang),
+                              child: Container(
+                                width: 26, height: 26,
+                                decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: AppColors.primary, width: 1.5)),
+                                child: const Icon(Icons.edit, size: 13, color: AppColors.primary),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 16),
+
+                      // Name & Info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(profile.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 22, height: 1.1)),
+                            const SizedBox(height: 5),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
+                                  child: Text('🏺 ${profile.craftType}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 11.5)),
+                                ),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                  decoration: BoxDecoration(color: Colors.green.shade600, borderRadius: BorderRadius.circular(8)),
+                                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                    const Icon(Icons.verified, size: 10, color: Colors.white),
+                                    const SizedBox(width: 3),
+                                    const Text('VERIFIED', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 10, letterSpacing: 0.5)),
+                                  ]),
+                                ),
                               ],
                             ),
-                            child: const Icon(Icons.edit, color: Colors.white, size: 14),
-                          ),
+                            const SizedBox(height: 5),
+                            Row(children: [
+                              const Icon(Icons.location_on, size: 13, color: Colors.white70),
+                              const SizedBox(width: 3),
+                              Text(profile.location, style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500)),
+                            ]),
+                            const SizedBox(height: 3),
+                            Row(children: [
+                              const Icon(Icons.badge_outlined, size: 13, color: Colors.white54),
+                              const SizedBox(width: 3),
+                              Text('ID: $pehchanId', style: const TextStyle(color: Colors.white54, fontSize: 11, fontFamily: 'monospace')),
+                            ]),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(width: 14),
 
-                  // Name and Key Identifiers
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          profile.name,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.textPrimary,
-                            height: 1.2,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.tertiaryFixed,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            '🏺 ${profile.craftType}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.tertiaryDark,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            const Icon(Icons.location_on_rounded, size: 14, color: AppColors.primary),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                profile.location,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textSecondary,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(Icons.badge_outlined, size: 14, color: AppColors.textLight),
-                            const SizedBox(width: 4),
-                            Text(
-                              'ID: $pehchanId',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
-                                fontFamily: 'monospace',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                  const SizedBox(height: 14),
 
-            // Loud Speaker Audio Readout Button (Rural Low-Literacy Hero Feature)
-            Container(
-              margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: const LinearGradient(
-                  colors: [AppColors.primary, AppColors.primaryDark],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.35),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => _speakProfile(context, profile, lang, activeProductsCount),
-                  borderRadius: BorderRadius.circular(16),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.volume_up_rounded, color: Colors.white, size: 24),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _t(lang,
-                                  en: 'Listen to My Identity Card 🔊',
-                                  mr: 'माझी माहिती बोलून ऐका 🔊',
-                                  hi: 'अपनी पहचान आवाज में सुनें 🔊'
-                                ),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 14.5,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                _t(lang,
-                                  en: 'Tap here — will speak in your language',
-                                  mr: 'येथे दाबा — तुमची माहिती मराठीत वाचून दाखवेल',
-                                  hi: 'यहाँ दबाएं — आपकी जानकारी हिंदी में सुनाएगा'
-                                ),
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.9),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Voice Assistant Readout Modal ──────────────────────────────────────────
-  void _speakProfile(BuildContext context, UserProfileModel profile, String lang, int activeProductsCount) {
-    HapticFeedback.heavyImpact();
-
-    final phone = profile.phone.isNotEmpty ? profile.phone : '+91 98765 43210';
-    final spokenText = lang == 'mr'
-        ? '🙏 नमस्कार! माझे नाव ${profile.name} आहे.\n\n'
-          'मी ${profile.location} येथील ${profile.craftType} कारागीर आहे.\n\n'
-          'माझा नोंदणीकृत फोन नंबर $phone आहे. सर्व ग्राहक या नंबरवर संपर्क करू शकतात.\n\n'
-          'शिल्पसेतू दुकानात माझ्या $activeProductsCount वस्तू विक्रीसाठी उपलब्ध आहेत.\n\n'
-          'माझी सर्व कमाई थेट माझ्या बँक खात्यात विना दलाल सुरक्षित जमा होते.'
-        : (lang == 'hi'
-            ? '🙏 नमस्ते! मेरा नाम ${profile.name} है।\n\n'
-              'मैं ${profile.location} से ${profile.craftType} का प्रमाणित कारीगर हूँ।\n\n'
-              'मेरा पंजीकृत मोबाइल नंबर $phone है। सभी ग्राहक इसी नंबर पर संपर्क कर सकते हैं।\n\n'
-              'शिल्पसेतु दुकान में मेरे $activeProductsCount उत्पाद बिक्री के लिए तैयार हैं।\n\n'
-              'मेरी पूरी कमाई बिना किसी दलाल के सीधे मेरे बैंक खाते में सुरक्षित आती है।'
-            : '🙏 Hello! My name is ${profile.name}.\n\n'
-              'I am a certified ${profile.craftType} artisan from ${profile.location}.\n\n'
-              'My registered phone number is $phone. Customers can contact me here.\n\n'
-              'I currently have $activeProductsCount handmade items available in my shop.\n\n'
-              'All my earnings are credited directly to my bank account with zero middlemen.');
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surfaceContainerLowest,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: 44,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: AppColors.divider,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
+                  // Audio Button
+                  GestureDetector(
+                    onTap: () => _showAudioProfile(context, profile, lang, productCount),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                       decoration: BoxDecoration(
-                        color: AppColors.primaryFixed,
-                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
                       ),
-                      child: const Icon(Icons.graphic_eq_rounded, color: AppColors.primary, size: 28),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _t(lang,
-                              en: 'Artisan Audio Profile',
-                              mr: 'माहिती बोलून दाखवत आहे 🔊',
-                              hi: 'कारीगर पहचान आवाज में 🔊'
-                            ),
-                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17),
-                          ),
-                          Text(
-                            _t(lang,
-                              en: 'Listen carefully to your profile details',
-                              mr: 'तुमची माहिती लक्षपूर्वक ऐका किंवा वाचा',
-                              hi: 'अपनी जानकारी ध्यान से सुनें या पढ़ें'
-                            ),
-                            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded),
-                      onPressed: () => Navigator.pop(ctx),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Spoken Text Card
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF8EE),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE5C096)),
-                  ),
-                  child: Text(
-                    spokenText,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                      height: 1.6,
+                      child: Row(children: [
+                        const Icon(Icons.volume_up_rounded, color: Colors.white, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          _t(lang, en: 'Listen to My Identity Card 🔊', mr: 'माझी माहिती बोलून ऐका 🔊', hi: 'पहचान आवाज में सुनें 🔊'),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
+                        ),
+                        const Spacer(),
+                        const Icon(Icons.arrow_forward_ios, size: 12, color: Colors.white70),
+                      ]),
                     ),
                   ),
-                ),
-                const SizedBox(height: 14),
-
-                // Security / Verified badge
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.verified_user_rounded, size: 16, color: Colors.green.shade700),
-                    const SizedBox(width: 6),
-                    Text(
-                      _t(lang,
-                        en: 'Official verified artisan details',
-                        mr: '✓ सर्व माहिती तपासून प्रमाणित केलेली आहे',
-                        hi: '✓ सभी जानकारी सत्यापित और सुरक्षित है'
-                      ),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green.shade800,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Action Buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          HapticFeedback.selectionClick();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(_t(lang,
-                                en: 'Replaying profile audio...',
-                                mr: 'माहिती पुन्हा ऐकवली जात आहे...',
-                                hi: 'जानकारी पुनः सुनाई जा रही है...'
-                              )),
-                              duration: const Duration(seconds: 2),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.replay_rounded, size: 18),
-                        label: Text(_t(lang, en: 'Replay 🔊', mr: 'पुन्हा ऐका 🔊', hi: 'फिर से सुनें 🔊')),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          side: const BorderSide(color: AppColors.primary),
-                          foregroundColor: AppColors.primary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                        child: Text(_t(lang, en: 'Got it 👍', mr: 'समजले 👍', hi: 'समझ गया 👍')),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLangPill(String label, String code, UserProfileProvider provider) {
+    final selected = provider.selectedLanguage == code;
+    return GestureDetector(
+      onTap: () { HapticFeedback.selectionClick(); provider.setLanguage(code); },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: selected ? Colors.white : Colors.white.withValues(alpha: 0.18),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? Colors.white : Colors.white38),
+        ),
+        child: Text(label, style: TextStyle(color: selected ? AppColors.primary : Colors.white, fontWeight: FontWeight.w800, fontSize: 11.5)),
+      ),
+    );
+  }
+
+  Widget _buildHeaderActionBtn({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onTap,
+    Color? color,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
+        child: Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(
+            color: color ?? Colors.white.withValues(alpha: 0.2),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white.withValues(alpha: 0.35), width: 1),
+          ),
+          child: Icon(icon, color: Colors.white, size: 17),
         ),
       ),
     );
   }
 
-  // ── Action Buttons ────────────────────────────────────────────────────────
-  Widget _buildActionButtons(BuildContext context, UserProfileModel profile, String lang) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+  // ── Stats Row ───────────────────────────────────────────────────────────────
+  Widget _buildStatsRow(BuildContext context, String lang, int productCount, UserProfileModel profile) {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(vertical: 16),
       child: Row(
         children: [
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () => _showEditProfileSheet(context, profile),
-              icon: const Icon(Icons.edit_note_rounded, size: 20),
-              label: Text(
-                _t(lang, en: 'Edit Info', mr: 'माहिती बदला ✍️', hi: 'जानकारी बदलें ✍️'),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                minimumSize: const Size(0, 48),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: () => _showSharePortfolioSheet(context, profile),
-              icon: const Icon(Icons.qr_code_2_rounded, size: 20, color: AppColors.textPrimary),
-              label: Text(
-                _t(lang, en: 'Share Card', mr: 'ओळखपत्र शेअर 📲', hi: 'पहचान शेयर 📲'),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
-              ),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(0, 48),
-                side: const BorderSide(color: AppColors.outline),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-            ),
-          ),
+          _buildStat(context, value: '$productCount', label: _t(lang, en: 'Live Crafts', mr: 'उत्पादने', hi: 'उत्पाद'), icon: Icons.inventory_2_rounded, color: AppColors.primary),
+          _buildStatDivider(),
+          _buildStat(context, value: profile.globalSales, label: _t(lang, en: 'Total Sales', mr: 'एकूण कमाई', hi: 'कुल कमाई'), icon: Icons.currency_rupee_rounded, color: AppColors.success),
+          _buildStatDivider(),
+          _buildStat(context, value: '${profile.rating.toStringAsFixed(1)}★', label: _t(lang, en: '${profile.totalReviews}+ Reviews', mr: '${profile.totalReviews}+ अभिप्राय', hi: '${profile.totalReviews}+ रिव्यू'), icon: Icons.star_rounded, color: const Color(0xFFF59E0B)),
         ],
       ),
     );
   }
 
-  // ── 4 Essential Information Tiles ──────────────────────────────────────────
-  Widget _buildEssentialInfoTiles(BuildContext context, UserProfileModel profile, String lang, int activeProductsCount) {
-    final phone = profile.phone.isNotEmpty ? profile.phone : '+91 98765 43210';
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+  Widget _buildStat(BuildContext context, {required String value, required String label, required IconData icon, required Color color}) {
+    return Expanded(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.badge_rounded, color: AppColors.primary, size: 22),
-              const SizedBox(width: 8),
-              Text(
-                _t(lang,
-                  en: 'My Essential Information',
-                  mr: 'माझी मुख्य माहिती (तुमचे तपशील)',
-                  hi: 'मेरी मुख्य जानकारी (आपका विवरण)'
-                ),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+            child: Icon(icon, color: color, size: 20),
           ),
-          const SizedBox(height: 12),
-
-          // 1. Phone Tile
-          _buildInfoCard(
-            context: context,
-            icon: Icons.phone_in_talk_rounded,
-            iconColor: Colors.green.shade800,
-            bgColor: Colors.green.shade50,
-            borderColor: Colors.green.shade200,
-            title: _t(lang, en: 'Registered Mobile Number', mr: 'नोंदणीकृत मोबाईल नंबर', hi: 'पंजीकृत मोबाइल नंबर'),
-            value: phone,
-            hint: _t(lang,
-              en: 'Customers and order alerts will arrive on this number',
-              mr: 'सर्व ग्राहक व ऑर्डर्सचे मेसेज याच नंबरवर येतात',
-              hi: 'सभी खरीदार और ऑर्डर के संदेश इसी नंबर पर आएंगे'
-            ),
-            badgeText: _t(lang, en: 'Active', mr: 'सक्रिय', hi: 'सक्रिय'),
-            badgeColor: Colors.green.shade700,
-            onTap: () => _showEditProfileSheet(context, profile),
-          ),
-          const SizedBox(height: 10),
-
-          // 2. Craft Tile
-          _buildInfoCard(
-            context: context,
-            icon: Icons.palette_rounded,
-            iconColor: Colors.deepOrange.shade800,
-            bgColor: Colors.deepOrange.shade50,
-            borderColor: Colors.deepOrange.shade200,
-            title: _t(lang, en: 'Handcrafted Heritage', mr: 'माझी हस्तकला व वारसा', hi: 'मेरा हस्तशिल्प और विरासत'),
-            value: profile.craftType,
-            hint: _t(lang,
-              en: 'Generational skill • 15+ years heritage',
-              mr: 'पारंपरिक कला • पिढीजात वारसा व उत्तम गुणवत्ता',
-              hi: 'पारंपरिक कला • 15+ वर्षों की पुश्तैनी महारत'
-            ),
-            badgeText: _t(lang, en: 'Heritage', mr: 'वारसा', hi: 'विरासत'),
-            badgeColor: Colors.deepOrange.shade700,
-            onTap: () => _showEditProfileSheet(context, profile),
-          ),
-          const SizedBox(height: 10),
-
-          // 3. Bank Account Tile
-          _buildInfoCard(
-            context: context,
-            icon: Icons.account_balance_rounded,
-            iconColor: Colors.indigo.shade800,
-            bgColor: Colors.indigo.shade50,
-            borderColor: Colors.indigo.shade200,
-            title: _t(lang, en: 'Bank Account & Direct Payment', mr: 'बँक खाते व थेट पैसे', hi: 'बैंक खाता और सीधा भुगतान'),
-            value: 'State Bank of India (**** 4321)',
-            hint: _t(lang,
-              en: '✓ 100% money goes to bank • 0% commission',
-              mr: '✓ १००% थेट बँकेत जमा • ०% दलाली/कमिशन',
-              hi: '✓ 100% सीधा बैंक में जमा • 0% कमीशन'
-            ),
-            badgeText: _t(lang, en: '0% Comm.', mr: '०% कमिशन', hi: '0% कमीशन'),
-            badgeColor: Colors.indigo.shade700,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(_t(lang,
-                    en: 'Direct Bank Deposit Active: SBI ending in 4321.',
-                    mr: 'थेट बँक जमा सक्रिय: स्टेट बँक ऑफ इंडिया (४३२१)',
-                    hi: 'सीधा बैंक भुगतान चालू है: भारतीय स्टेट बैंक (4321)'
-                  )),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 10),
-
-          // 4. Shop Products Tile
-          _buildInfoCard(
-            context: context,
-            icon: Icons.storefront_rounded,
-            iconColor: Colors.purple.shade800,
-            bgColor: Colors.purple.shade50,
-            borderColor: Colors.purple.shade200,
-            title: _t(lang, en: 'My Shop & Products', mr: 'माझे दुकान व वस्तू', hi: 'मेरी दुकान और उत्पाद'),
-            value: _t(lang,
-              en: '$activeProductsCount items active in shop',
-              mr: '$activeProductsCount वस्तू विक्रीसाठी उपलब्ध',
-              hi: '$activeProductsCount उत्पाद दुकान में बिक्री के लिए तैयार'
-            ),
-            hint: _t(lang,
-              en: 'Tap to view your shop or add new products →',
-              mr: 'दुकान पाहण्यासाठी किंवा नवीन वस्तू जोडण्यासाठी दाबा →',
-              hi: 'दुकान देखने या नया उत्पाद जोड़ने के लिए टैप करें →'
-            ),
-            badgeText: _t(lang, en: 'Shop Open', mr: 'दुकान सुरू', hi: 'दुकान चालू'),
-            badgeColor: Colors.purple.shade700,
-            onTap: () {
-              context.go('/artisan/products');
-            },
-          ),
+          const SizedBox(height: 6),
+          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: color)),
+          const SizedBox(height: 2),
+          Text(label, style: const TextStyle(fontSize: 10.5, color: AppColors.textLight, fontWeight: FontWeight.w600), textAlign: TextAlign.center),
         ],
       ),
     );
   }
 
-  Widget _buildInfoCard({
-    required BuildContext context,
-    required IconData icon,
-    required Color iconColor,
-    required Color bgColor,
-    required Color borderColor,
-    required String title,
-    required String value,
-    required String hint,
-    required String badgeText,
-    required Color badgeColor,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
+  Widget _buildStatDivider() => Container(width: 1, height: 50, color: AppColors.outlineVariant);
+
+  // ── Profile Tab ─────────────────────────────────────────────────────────────
+  Widget _buildProfileTab(BuildContext context, UserProfileModel profile, String lang, int productCount, String pehchanId) {
+    final phone = profile.phone.isNotEmpty ? profile.phone : '+91 98765 43210';
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // Info Cards
+        _buildSectionTitle(_t(lang, en: 'My Information', mr: 'माझी माहिती', hi: 'मेरी जानकारी')),
+        const SizedBox(height: 12),
+
+        _buildInfoTile(icon: Icons.phone_in_talk_rounded, color: AppColors.success,
+          title: _t(lang, en: 'Mobile Number', mr: 'मोबाईल नंबर', hi: 'मोबाइल नंबर'),
+          value: phone, badge: _t(lang, en: 'Active', mr: 'सक्रिय', hi: 'सक्रिय'), badgeColor: AppColors.success,
+          onTap: () => _showEditProfileSheet(context, profile, lang)),
+
+        _buildInfoTile(icon: Icons.palette_rounded, color: const Color(0xFFEA580C),
+          title: _t(lang, en: 'Craft Specialty', mr: 'हस्तकला', hi: 'हस्तशिल्प'),
+          value: profile.craftType, badge: _t(lang, en: 'Heritage', mr: 'वारसा', hi: 'विरासत'), badgeColor: const Color(0xFFEA580C),
+          onTap: () => _showEditProfileSheet(context, profile, lang)),
+
+        _buildInfoTile(icon: Icons.account_balance_rounded, color: const Color(0xFF6366F1),
+          title: _t(lang, en: 'Bank Account', mr: 'बँक खाते', hi: 'बैंक खाता'),
+          value: 'State Bank of India (**** 4321)', badge: '0% Comm.', badgeColor: const Color(0xFF6366F1),
+          onTap: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_t(lang, en: 'Direct Bank Deposit Active', mr: 'थेट बँक जमा सक्रिय', hi: 'सीधा बैंक भुगतान चालू')), behavior: SnackBarBehavior.floating))),
+
+        _buildInfoTile(icon: Icons.storefront_rounded, color: const Color(0xFF8B5CF6),
+          title: _t(lang, en: 'My Shop', mr: 'माझे दुकान', hi: 'मेरी दुकान'),
+          value: _t(lang, en: '$productCount items active', mr: '$productCount वस्तू उपलब्ध', hi: '$productCount उत्पाद उपलब्ध'), badge: _t(lang, en: 'Open', mr: 'सुरू', hi: 'चालू'), badgeColor: AppColors.success,
+          onTap: () => context.go('/artisan/products')),
+
+        const SizedBox(height: 20),
+
+        // Earnings Card
+        _buildSectionTitle(_t(lang, en: 'Earnings & Trust', mr: 'कमाई व विश्वास', hi: 'कमाई और भरोसा')),
+        const SizedBox(height: 12),
+        _buildEarningsCard(context, profile, lang),
+
+        const SizedBox(height: 20),
+
+        // Official ID Card
+        _buildSectionTitle(_t(lang, en: 'Official Identity Card', mr: 'अधिकृत ओळखपत्र', hi: 'आधिकारिक पहचान पत्र')),
+        const SizedBox(height: 12),
+        _buildOfficialIdCard(profile, lang, pehchanId, productCount),
+
+        const SizedBox(height: 20),
+
+        // Sign Out
+        _buildSignOutButton(context, lang),
+
+        const SizedBox(height: 30),
+      ],
+    );
+  }
+
+  Widget _buildSectionTitle(String title) => Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.textPrimary));
+
+  Widget _buildInfoTile({required IconData icon, required Color color, required String title, required String value, required String badge, required Color badgeColor, required VoidCallback onTap}) {
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
       child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: bgColor,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: borderColor),
+          border: Border.all(color: color.withValues(alpha: 0.15)),
+          boxShadow: [BoxShadow(color: color.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 3))],
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                border: Border.all(color: borderColor),
-              ),
-              child: Icon(icon, color: iconColor, size: 22),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+              child: Icon(icon, color: color, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -882,159 +450,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        title,
-                        style: TextStyle(fontSize: 11.5, color: Colors.grey.shade700, fontWeight: FontWeight.w600),
-                      ),
+                      Text(title, style: const TextStyle(fontSize: 11.5, color: AppColors.textLight, fontWeight: FontWeight.w600)),
                       const Spacer(),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: badgeColor.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          badgeText,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: badgeColor,
-                          ),
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(color: badgeColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                        child: Text(badge, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: badgeColor)),
                       ),
                     ],
                   ),
                   const SizedBox(height: 3),
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    hint,
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600, height: 1.2),
-                  ),
+                  Text(value, style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
                 ],
               ),
             ),
+            const SizedBox(width: 6),
+            Icon(Icons.chevron_right, color: color.withValues(alpha: 0.5), size: 18),
           ],
         ),
       ),
     );
   }
 
-  // ── Simple Earnings Card ───────────────────────────────────────────────────
-  Widget _buildSimpleEarningsCard(BuildContext context, UserProfileModel profile, String lang) {
+  Widget _buildEarningsCard(BuildContext context, UserProfileModel profile, String lang) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.divider),
-        boxShadow: const [
-          BoxShadow(color: AppColors.cardShadow, blurRadius: 6, offset: Offset(0, 2)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryFixed,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.currency_rupee_rounded, color: AppColors.primary, size: 20),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    _t(lang, en: 'My Total Earnings', mr: 'माझी एकूण कमाई 💰', hi: 'मेरी कुल कमाई 💰'),
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.green.shade200),
-                ),
-                child: Text(
-                  _t(lang, en: '✓ Direct to Bank', mr: '✓ थेट बँकेत जमा', hi: '✓ सीधे बैंक में'),
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green.shade800,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            profile.globalSales,
-            style: const TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w900,
-              color: AppColors.primaryDark,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _t(lang,
-              en: 'All payments credited directly into your SBI account with zero commission.',
-              mr: 'कोणत्याही दलालाशिवाय १००% पैसे थेट तुमच्या बँकेत सुरक्षित जमा.',
-              hi: 'बिना किसी बिचौलिए के 100% पैसा सीधे आपके खाते में सुरक्षित जमा।'
-            ),
-            style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 10),
-          const Divider(),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Icon(Icons.star_rounded, color: Colors.amber.shade700, size: 20),
-              const SizedBox(width: 4),
-              Text(
-                '${profile.rating.toStringAsFixed(1)} / 5.0',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '•  ${profile.totalReviews}+ ${_t(lang, en: 'happy buyer reviews', mr: 'ग्राहकांचे विश्वासू अभिप्राय', hi: 'संतुष्ट ग्राहकों के रिव्यू')}',
-                  style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Helpline & Call Support ────────────────────────────────────────────────
-  Widget _buildHelplineCard(BuildContext context, String lang) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF9E6),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFFFD54F)),
+        gradient: const LinearGradient(colors: [Color(0xFF064E3B), Color(0xFF059669)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: const Color(0xFF059669).withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1043,680 +487,502 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFFECB3),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.support_agent_rounded, color: Color(0xFFE65100), size: 24),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 20),
               ),
               const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _t(lang,
-                        en: 'Artisan Help & Support',
-                        mr: 'कारागीर मदत व मार्गदर्शन केंद्र 📞',
-                        hi: 'कारीगर सहायता एवं मार्गदर्शन 📞'
-                      ),
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                    ),
-                    Text(
-                      _t(lang,
-                        en: 'Free assistance in Marathi or Hindi',
-                        mr: 'काही अडचण असल्यास मराठी/हिंदीत मोफत बोला',
-                        hi: 'कोई भी समस्या हो तो निःशुल्क बात करें'
-                      ),
-                      style: const TextStyle(fontSize: 11, color: Color(0xFFE65100)),
-                    ),
-                  ],
-                ),
+              Text(_t(lang, en: 'Total Earnings', mr: 'एकूण कमाई', hi: 'कुल कमाई'),
+                style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w700, fontSize: 13)),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(10)),
+                child: Text(_t(lang, en: '✓ Direct to Bank', mr: '✓ थेट बँकेत', hi: '✓ सीधे बैंक में'),
+                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Toll-Free Helpline: 1800-123-4567 (मराठी व हिंदी)'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.call, size: 16),
-                  label: Text(_t(lang, en: '1800-123-4567', mr: 'फोन करा १८००..', hi: 'कॉल करें १८००..')),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(_t(lang,
-                          en: 'Opening WhatsApp Artisan Support...',
-                          mr: 'व्हॉट्सअॅप मदत केंद्र सुरू होत आहे...',
-                          hi: 'व्हाट्सएप सहायता शुरू हो रही है...'
-                        )),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.chat_rounded, size: 16),
-                  label: Text(_t(lang, en: 'WhatsApp Help', mr: 'व्हॉट्सअॅप मदत', hi: 'व्हाट्सएप सहायता')),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.green.shade800,
-                    side: BorderSide(color: Colors.green.shade700),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
+          Text(profile.globalSales, style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 4),
+          Text(
+            _t(lang, en: '100% credited directly — 0% commission, 0% middlemen.', mr: '१००% थेट बँकेत जमा — ०% दलाली, ०% कमिशन.', hi: '100% सीधे बैंक में — 0% कमीशन, 0% बिचौलिया.'),
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12),
           ),
+          const SizedBox(height: 12),
+          Container(height: 1, color: Colors.white.withValues(alpha: 0.2)),
+          const SizedBox(height: 10),
+          Row(children: [
+            const Icon(Icons.star_rounded, color: Color(0xFFFBBF24), size: 18),
+            const SizedBox(width: 5),
+            Text('${profile.rating.toStringAsFixed(1)} / 5.0', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
+            const SizedBox(width: 8),
+            Text('• ${profile.totalReviews}+ ${_t(lang, en: 'reviews', mr: 'अभिप्राय', hi: 'रिव्यू')}',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 12)),
+          ]),
         ],
       ),
     );
   }
 
-  // ── Government Welfare Schemes ─────────────────────────────────────────────
-  Widget _buildGovernmentSchemes(BuildContext context, String lang) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
-          child: Row(
-            children: [
-              const Icon(Icons.account_balance_outlined, color: AppColors.primary, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                _t(lang,
-                  en: 'Government Welfare Schemes',
-                  mr: 'शासकीय योजना व आर्थिक मदत',
-                  hi: 'सरकारी योजनाएँ और वित्तीय सहायता'
-                ),
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
-              ),
-            ],
-          ),
-        ),
-        Row(
+  Widget _buildOfficialIdCard(UserProfileModel profile, String lang, String pehchanId, int productCount) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFFFFFDF8), Color(0xFFFFF6E8)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE5C096), width: 1.5),
+        boxShadow: [BoxShadow(color: const Color(0x1A8B4513), blurRadius: 12, offset: const Offset(0, 4))],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Column(
           children: [
-            const SizedBox(width: 16),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => _showSchemeDialog(
-                  _t(lang,
-                    en: 'PM Vishwakarma & Micro-Loans',
-                    mr: 'पीएम विश्वकर्मा योजना व कर्ज',
-                    hi: 'पीएम विश्वकर्मा योजना और ऋण'
-                  ),
-                  _t(lang,
-                    en: 'Avail financial support under PM Vishwakarma Scheme:\n\n✓ ₹15,000 toolkit grant\n✓ Up to ₹3,00,000 credit at 5% low interest\n✓ Official Artisan identity card\n✓ Free skill training',
-                    mr: 'पीएम विश्वकर्मा योजनेअंतर्गत लाभ:\n\n✓ ₹१५,००० मोफत टूलकिट अनुदान\n✓ ₹३ लाखांपर्यंत ५% अत्यंत कमी व्याज दराने कर्ज\n✓ भारत सरकारचे अधिकृत ओळखपत्र\n✓ मोफत कौशल्य प्रशिक्षण',
-                    hi: 'पीएम विश्वकर्मा योजना के तहत लाभ:\n\n✓ ₹15,000 फ्री टूलकिट अनुदान\n✓ ₹3 लाख तक 5% रियायती ब्याज पर ऋण\n✓ भारत सरकार का आधिकारिक पहचान पत्र\n✓ निःशुल्क कौशल प्रशिक्षण'
-                  ),
-                ),
-                child: _buildSchemeCard(
-                  Icons.handyman_rounded,
-                  _t(lang, en: 'PM Vishwakarma', mr: 'पीएम विश्वकर्मा', hi: 'पीएम विश्वकर्मा'),
-                  _t(lang,
-                    en: '₹15,000 free toolkit + 5% low interest loan.',
-                    mr: '₹१५,००० मोफत टूलकिट + ५% कमी व्याज कर्ज.',
-                    hi: '₹15,000 फ्री टूलकिट + 5% रियायती ऋण।'
-                  ),
-                  _t(lang, en: 'Learn More →', mr: 'माहिती पहा →', hi: 'विवरण देखें →'),
-                ),
+            // Tricolor stripe
+            Row(children: [
+              Expanded(child: Container(height: 4, color: const Color(0xFFFF9933))),
+              Expanded(child: Container(height: 4, color: Colors.white)),
+              Expanded(child: Container(height: 4, color: const Color(0xFF138808))),
+            ]),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    const Text('🇮🇳', style: TextStyle(fontSize: 18)),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(
+                      _t(lang, en: 'GOVT. RECOGNIZED ARTISAN PEHCHAN CARD', mr: 'कारागीर ओळखपत्र', hi: 'कारीगर पहचान पत्र'),
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF6B3004), letterSpacing: 0.5),
+                    )),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(color: Colors.green.shade700, borderRadius: BorderRadius.circular(8)),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.verified, size: 10, color: Colors.white),
+                        const SizedBox(width: 3),
+                        Text(_t(lang, en: 'VERIFIED', mr: 'प्रमाणित', hi: 'सत्यापित'), style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.w800)),
+                      ]),
+                    ),
+                  ]),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    _buildIdField(_t(lang, en: 'Name', mr: 'नाव', hi: 'नाम'), profile.name),
+                    const SizedBox(width: 16),
+                    _buildIdField(_t(lang, en: 'Craft', mr: 'हस्तकला', hi: 'हस्तशिल्प'), profile.craftType),
+                  ]),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    _buildIdField(_t(lang, en: 'Pehchan ID', mr: 'ओळख क्रमांक', hi: 'पहचान ID'), pehchanId),
+                    const SizedBox(width: 16),
+                    _buildIdField(_t(lang, en: 'Active Products', mr: 'उत्पादने', hi: 'उत्पाद'), '$productCount'),
+                  ]),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    _buildIdField(_t(lang, en: 'Location', mr: 'स्थान', hi: 'स्थान'), profile.location),
+                    const SizedBox(width: 16),
+                    _buildIdField(_t(lang, en: 'State', mr: 'राज्य', hi: 'राज्य'), profile.state.isNotEmpty ? profile.state : 'Maharashtra'),
+                  ]),
+                  const SizedBox(height: 12),
+                  Text(_t(lang, en: 'Ministry of Textiles & ShilpSetu Digital Registry', mr: 'वस्त्रोद्योग मंत्रालय व शिल्पसेतू', hi: 'वस्त्र मंत्रालय एवं शिल्पसेतु'),
+                    style: TextStyle(fontSize: 10, color: Colors.brown.shade600, fontWeight: FontWeight.w500)),
+                ],
               ),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => _showSchemeDialog(
-                  _t(lang,
-                    en: 'GI-Tag Heritage Certification',
-                    mr: 'GI-टॅग भौगोलिक मानांकन',
-                    hi: 'जीआई-टैग भौगोलिक पहचान'
-                  ),
-                  _t(lang,
-                    en: 'Geographical Indication (GI) certification provides legal protection and authentic heritage branding for your craft.\n\n✓ Legal protection against fake copies\n✓ Free government documentation\n✓ Premium prices in market',
-                    mr: 'GI-टॅग भौगोलिक मानांकन लाभ:\n\n✓ तुमच्या कलेला कायदेशीर संरक्षण\n✓ बाजारात जास्त आणि चांगला भाव\n✓ बनावट वस्तूंपासून संरक्षण\n✓ मोफत शासकीय कागदपत्र मदत',
-                    hi: 'जीआई-टैग पहचान के लाभ:\n\n✓ आपके हस्तशिल्प को कानूनी सुरक्षा\n✓ बाजार में बेहतर और उचित मूल्य\n✓ नकली माल से सुरक्षा\n✓ निःशुल्क सरकारी सहायता'
-                  ),
-                ),
-                child: _buildSchemeCard(
-                  Icons.verified_user_rounded,
-                  _t(lang, en: 'GI-Tag Heritage', mr: 'GI-टॅग मानांकन', hi: 'जीआई-टैग प्रमाणन'),
-                  _t(lang,
-                    en: 'Legal heritage protection & authentic branding.',
-                    mr: 'हस्तकलेला कायदेशीर ओळख व चांगला भाव.',
-                    hi: 'हस्तशिल्प को कानूनी पहचान और बेहतर मूल्य।'
-                  ),
-                  _t(lang, en: 'Check Status →', mr: 'स्थिती तपासा →', hi: 'स्थिति देखें →'),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildIdField(String label, String value) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 9.5, color: AppColors.textLight, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 2),
+          Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.textPrimary), overflow: TextOverflow.ellipsis),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSignOutButton(BuildContext context, String lang) {
+    return GestureDetector(
+      onTap: () => _confirmSignOut(context, lang),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.red.shade200),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.logout_rounded, color: Colors.red.shade600, size: 20),
+            const SizedBox(width: 8),
+            Text(_t(lang, en: 'Sign Out', mr: 'बाहेर पडा', hi: 'साइन आउट करें'),
+              style: TextStyle(color: Colors.red.shade600, fontWeight: FontWeight.w700, fontSize: 15)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Schemes Tab ─────────────────────────────────────────────────────────────
+  Widget _buildSchemesTab(BuildContext context, String lang) {
+    final schemes = [
+      _SchemeData(
+        emoji: '🏗️',
+        title: 'PM Vishwakarma Scheme',
+        subtitle: _t(lang, en: '₹3L loan at 5% + ₹15,000 toolkit', mr: '₹३ लाख ५% व्याज + ₹१५,००० टूलकिट', hi: '₹3 लाख 5% ब्याज + ₹15,000 टूलकिट'),
+        tag: _t(lang, en: 'Govt. of India', mr: 'भारत सरकार', hi: 'भारत सरकार'),
+        color: AppColors.primary,
+        detail: _t(lang,
+          en: '✓ ₹15,000 toolkit grant\n✓ Up to ₹3,00,000 at 5% interest\n✓ Official Artisan identity card\n✓ Free skill training programs',
+          mr: '✓ ₹१५,००० मोफत टूलकिट\n✓ ₹३ लाखांपर्यंत ५% कर्ज\n✓ अधिकृत ओळखपत्र\n✓ मोफत कौशल्य प्रशिक्षण',
+          hi: '✓ ₹15,000 फ्री टूलकिट\n✓ ₹3 लाख तक 5% ऋण\n✓ आधिकारिक पहचान पत्र\n✓ निःशुल्क कौशल प्रशिक्षण'),
+      ),
+      _SchemeData(
+        emoji: '🌏',
+        title: 'ODOP – One District One Product',
+        subtitle: _t(lang, en: 'Export support & state pavilions', mr: 'निर्यात मदत व राज्य प्रदर्शनी', hi: 'निर्यात सहायता और राज्य प्रदर्शनी'),
+        tag: _t(lang, en: 'National Initiative', mr: 'राष्ट्रीय उपक्रम', hi: 'राष्ट्रीय पहल'),
+        color: const Color(0xFF0EA5E9),
+        detail: _t(lang,
+          en: '✓ Direct export market access\n✓ State pavilion stalls in Delhi\n✓ Premium branding support\n✓ Free packaging assistance',
+          mr: '✓ थेट निर्यात बाजार\n✓ दिल्लीत राज्य प्रदर्शनी\n✓ प्रीमियम ब्रँडिंग मदत\n✓ मोफत पॅकेजिंग सहाय्य',
+          hi: '✓ सीधी निर्यात बाजार पहुंच\n✓ दिल्ली में राज्य मंडप\n✓ प्रीमियम ब्रांडिंग सहायता\n✓ मुफ्त पैकेजिंग सहायता'),
+      ),
+      _SchemeData(
+        emoji: '🏷️',
+        title: 'GI-Tag Heritage Certification',
+        subtitle: _t(lang, en: 'Geographical Indication protection', mr: 'भौगोलिक मानांकन संरक्षण', hi: 'भौगोलिक पहचान संरक्षण'),
+        tag: _t(lang, en: 'Legal Protection', mr: 'कायदेशीर', hi: 'कानूनी'),
+        color: const Color(0xFF8B5CF6),
+        detail: _t(lang,
+          en: '✓ Legal protection for your craft\n✓ Premium market prices\n✓ Protection from fake copies\n✓ Free government documentation',
+          mr: '✓ कलेला कायदेशीर संरक्षण\n✓ बाजारात जास्त भाव\n✓ बनावट वस्तूंपासून संरक्षण\n✓ मोफत शासकीय कागदपत्र',
+          hi: '✓ शिल्प को कानूनी सुरक्षा\n✓ बाजार में बेहतर मूल्य\n✓ नकली माल से सुरक्षा\n✓ मुफ्त सरकारी दस्तावेज़'),
+      ),
+      _SchemeData(
+        emoji: '📸',
+        title: _t(lang, en: 'Digital Photography Masterclass', mr: 'डिजिटल फोटोग्राफी वर्कशॉप', hi: 'डिजिटल फोटोग्राफी मास्टरक्लास'),
+        subtitle: _t(lang, en: 'Free workshop • This Saturday 4 PM', mr: 'मोफत कार्यशाळा • हा शनिवार ४ PM', hi: 'निःशुल्क वर्कशॉप • इस शनिवार 4 PM'),
+        tag: _t(lang, en: 'Skill Training', mr: 'कौशल्य', hi: 'कौशल'),
+        color: const Color(0xFFEC4899),
+        detail: _t(lang,
+          en: '✓ Mobile photography lighting tips\n✓ Product background setup\n✓ Editing for better listings\n✓ All ShilpSetu artisans welcome',
+          mr: '✓ मोबाईल फोटोग्राफी टिप्स\n✓ उत्पाद बॅकग्राउंड सेटअप\n✓ फोटो सुधारणा तंत्र\n✓ सर्व नोंदणीकृत कारागीर',
+          hi: '✓ मोबाइल फोटोग्राफी टिप्स\n✓ उत्पाद बैकग्राउंड सेटअप\n✓ फोटो एडिटिंग तकनीक\n✓ सभी ShilpSetu कारीगर'),
+      ),
+    ];
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(color: AppColors.primaryFixed, borderRadius: BorderRadius.circular(14)),
+          child: Row(children: [
+            const Text('🏛️', style: TextStyle(fontSize: 22)),
+            const SizedBox(width: 10),
+            Expanded(child: Text(
+              _t(lang, en: 'Government schemes & opportunities available for you.', mr: 'तुमच्यासाठी शासकीय योजना उपलब्ध आहेत.', hi: 'आपके लिए सरकारी योजनाएं उपलब्ध हैं।'),
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, color: AppColors.primaryDark),
+            )),
+          ]),
+        ),
+        const SizedBox(height: 16),
+        ...schemes.map((s) => _buildSchemeCard(context, s, lang)).toList(),
+        const SizedBox(height: 30),
       ],
     );
   }
 
-  Widget _buildSchemeCard(IconData icon, String title, String desc, String cta) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.primaryFixed,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: AppColors.primary, size: 24),
-          const SizedBox(height: 8),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.primaryDark)),
-          const SizedBox(height: 4),
-          Text(desc, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary), maxLines: 3),
-          const SizedBox(height: 8),
-          Text(cta, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary)),
-        ],
+  Widget _buildSchemeCard(BuildContext context, _SchemeData s, String lang) {
+    return GestureDetector(
+      onTap: () => _showSchemeDetail(context, s),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: s.color.withValues(alpha: 0.2)),
+          boxShadow: [BoxShadow(color: s.color.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 3))],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 50, height: 50,
+              decoration: BoxDecoration(color: s.color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
+              child: Center(child: Text(s.emoji, style: const TextStyle(fontSize: 24))),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(color: s.color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                      child: Text(s.tag, style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: s.color)),
+                    ),
+                  ]),
+                  const SizedBox(height: 4),
+                  Text(s.title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.textPrimary)),
+                  const SizedBox(height: 2),
+                  Text(s.subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, size: 14, color: s.color),
+          ],
+        ),
       ),
     );
   }
 
-  // ── Buyer Reviews ──────────────────────────────────────────────────────────
-  Widget _buildReviews(UserProfileModel profile, String lang) {
-    final reviews = [
-      {
-        'name': 'Priya S.',
-        'rating': '5.0',
-        'comment': lang == 'mr'
-            ? 'अतिशय सुंदर आणि अस्सल हाताने बनवलेली कलाकृती! कारागिरांचे काम वाखाणण्याजोगे आहे.'
-            : (lang == 'hi'
-                ? 'बहुत ही सुंदर और असली हाथ से बनी कलाकृति! कारीगर का काम सराहनीय है।'
-                : 'Absolutely stunning handmade craft! The attention to detail is remarkable.'),
-        'time': '2 days ago'
-      },
-      {
-        'name': 'Ramesh K.',
-        'rating': '4.9',
-        'comment': lang == 'mr'
-            ? 'पॅकिंग खूप सुरक्षित होते आणि वेळात डिलिव्हरी मिळाली. भारतीय कारागिरांचा अभिमान आहे!'
-            : (lang == 'hi'
-                ? 'पैकिंग बहुत सुरक्षित थी और समय पर डिलीवरी मिली। भारतीय कारीगरों पर गर्व है!'
-                : 'Shipped safely without damage. Beautiful packaging and authentic Indian artisan touch!'),
-        'time': '1 week ago'
-      },
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                _t(lang, en: 'Buyer Reviews', mr: 'ग्राहकांचे अभिप्राय (रिव्ह्यू)', hi: 'ग्राहकों की राय (रिव्यू)'),
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+  void _showSchemeDetail(BuildContext context, _SchemeData s) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+            const SizedBox(height: 16),
+            Row(children: [
+              Text(s.emoji, style: const TextStyle(fontSize: 28)),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(s.title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                Text(s.subtitle, style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary)),
+              ])),
+            ]),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(color: s.color.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(14)),
+              child: Text(s.detail, style: const TextStyle(fontSize: 14, height: 1.7, color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: ElevatedButton.styleFrom(backgroundColor: s.color, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                child: const Text('OK', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
               ),
-              Row(
-                children: [
-                  const Icon(Icons.star, color: AppColors.tertiary, size: 16),
-                  const SizedBox(width: 4),
-                  Text('${profile.rating.toStringAsFixed(1)} · ${profile.totalReviews} reviews',
-                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
-        ...reviews.map((r) => Container(
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-          padding: const EdgeInsets.all(14),
+      ),
+    );
+  }
+
+  // ── Support Tab ─────────────────────────────────────────────────────────────
+  Widget _buildSupportTab(BuildContext context, String lang) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // Helpline Card
+        Container(
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.divider),
-            boxShadow: const [BoxShadow(color: AppColors.cardShadow, blurRadius: 6)],
+            gradient: const LinearGradient(colors: [Color(0xFFE65100), Color(0xFFFF6D00)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [BoxShadow(color: const Color(0xFFE65100).withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor: AppColors.secondaryFixed,
-                    child: Text(r['name']![0], style: const TextStyle(color: AppColors.secondaryDark, fontWeight: FontWeight.w800, fontSize: 14)),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(r['name']!, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                        Text(r['time']!, style: const TextStyle(fontSize: 10, color: AppColors.textLight)),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppColors.tertiaryFixed,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.star, color: AppColors.tertiary, size: 12),
-                        const SizedBox(width: 3),
-                        Text(r['rating']!, style: const TextStyle(color: AppColors.tertiaryDark, fontWeight: FontWeight.w800, fontSize: 11)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+              Row(children: [
+                Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.support_agent_rounded, color: Colors.white, size: 22)),
+                const SizedBox(width: 10),
+                Text(_t(lang, en: 'Artisan Helpline', mr: 'कारागीर मदत केंद्र', hi: 'कारीगर हेल्पलाइन'),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+              ]),
               const SizedBox(height: 8),
-              Text(r['comment']!, style: const TextStyle(fontSize: 12, height: 1.4, color: AppColors.textPrimary)),
+              Text(_t(lang, en: 'Free assistance in Marathi & Hindi', mr: 'मराठी व हिंदीत मोफत सहाय्य', hi: 'मराठी और हिंदी में निःशुल्क'),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12.5)),
+              const SizedBox(height: 14),
+              Row(children: [
+                Expanded(child: GestureDetector(
+                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Toll-Free: 1800-123-4567'), behavior: SnackBarBehavior.floating)),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 11),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                    child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      const Icon(Icons.call, color: Color(0xFFE65100), size: 18),
+                      const SizedBox(width: 6),
+                      Text(_t(lang, en: 'Call Now', mr: 'फोन करा', hi: 'कॉल करें'), style: const TextStyle(color: Color(0xFFE65100), fontWeight: FontWeight.w800, fontSize: 13)),
+                    ]),
+                  ),
+                )),
+                const SizedBox(width: 10),
+                Expanded(child: GestureDetector(
+                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_t(lang, en: 'Opening WhatsApp...', mr: 'व्हॉट्सअॅप उघडत आहे...', hi: 'व्हाट्सएप खुल रहा है...')), behavior: SnackBarBehavior.floating)),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 11),
+                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.5))),
+                    child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      const Icon(Icons.chat_rounded, color: Colors.white, size: 18),
+                      const SizedBox(width: 6),
+                      Text('WhatsApp', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13)),
+                    ]),
+                  ),
+                )),
+              ]),
             ],
           ),
-        )),
+        ),
+
+        const SizedBox(height: 16),
+
+        // FAQ Items
+        _buildSectionTitle(_t(lang, en: 'Frequently Asked', mr: 'वारंवार विचारले', hi: 'अक्सर पूछे जाते')),
+        const SizedBox(height: 12),
+
+        ...[
+          (_t(lang, en: 'How do I get paid?', mr: 'पैसे कसे मिळतात?', hi: 'पैसे कैसे मिलते हैं?'),
+           _t(lang, en: 'All buyer payments go directly to your registered bank account within 2-3 business days. Zero commission.', mr: 'सर्व ग्राहकांचे पैसे थेट तुमच्या बँक खात्यात २-३ दिवसांत जमा होतात. कोणतीही दलाली नाही.', hi: 'सभी भुगतान सीधे आपके बैंक खाते में 2-3 दिन में जमा होते हैं। कोई कमीशन नहीं।')),
+          (_t(lang, en: 'How to add more products?', mr: 'अधिक वस्तू कशा जोडाव्यात?', hi: 'अधिक उत्पाद कैसे जोड़ें?'),
+           _t(lang, en: 'Go to Dashboard → Take Photo or Speak Details. AI will create the listing automatically.', mr: 'डॅशबोर्ड वर जा → फोटो काढा किंवा बोलून सांगा. AI आपोआप तयार करेल.', hi: 'डैशबोर्ड → फोटो लें या बोलकर बताएं। AI अपने आप लिस्टिंग बना देगा।')),
+          (_t(lang, en: 'How to contact buyers?', mr: 'ग्राहकांशी कसे बोलावे?', hi: 'खरीदारों से कैसे संपर्क करें?'),
+           _t(lang, en: 'Use the "Buyer Chats" section on the Dashboard to message buyers directly.', mr: 'डॅशबोर्डवरील "खरेदीदार संवाद" विभागात थेट ग्राहकांशी बोला.', hi: 'डैशबोर्ड के "खरीदार चैट" अनुभाग में सीधे संपर्क करें।')),
+        ].map((faq) => _buildFaqTile(faq.$1, faq.$2)).toList(),
+
+        const SizedBox(height: 30),
       ],
     );
   }
 
-  // ── Sign Out Section ───────────────────────────────────────────────────────
-  Widget _buildSignOutSection(BuildContext context, String lang) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-      child: SizedBox(
-        width: double.infinity,
-        height: 50,
-        child: OutlinedButton.icon(
-          onPressed: () => _confirmSignOut(),
-          icon: const Icon(Icons.logout_rounded, color: AppColors.error, size: 20),
-          label: Text(
-            _t(lang, en: 'Sign Out of Account', mr: 'खात्यातून बाहेर पडा (लॉगआउट)', hi: 'अकाउंट से बाहर निकलें (लॉगआउट)'),
-            style: const TextStyle(
-              color: AppColors.error,
-              fontWeight: FontWeight.w800,
-              fontSize: 14,
-            ),
-          ),
-          style: OutlinedButton.styleFrom(
-            side: BorderSide(color: AppColors.error.withValues(alpha: 0.4)),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          ),
-        ),
+  Widget _buildFaqTile(String question, String answer) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.outlineVariant)),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+        shape: const Border(),
+        leading: Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: AppColors.primaryFixed, borderRadius: BorderRadius.circular(8)),
+          child: const Icon(Icons.help_outline_rounded, color: AppColors.primary, size: 18)),
+        title: Text(question, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, color: AppColors.textPrimary)),
+        children: [Text(answer, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.5))],
       ),
     );
   }
 
-  // ── Edit Profile Modal Sheet ────────────────────────────────────────────────
-  void _showEditProfileSheet(BuildContext context, UserProfileModel profile) {
-    final nameController = TextEditingController(text: profile.name);
-    final craftController = TextEditingController(text: profile.craftType);
-    final locationController = TextEditingController(text: profile.location);
-    final stateController = TextEditingController(text: profile.state);
-    final phoneController = TextEditingController(text: profile.phone);
-    final bioController = TextEditingController(text: profile.bio);
-
-    final craftSuggestions = [
-      'Textiles', 'Pottery', 'Woodcraft', 'Jewellery',
-      'Paintings', 'Weaving', 'Stone Art', 'Terracotta',
-    ];
+  // ── Modals ───────────────────────────────────────────────────────────────────
+  void _showAudioProfile(BuildContext context, UserProfileModel profile, String lang, int productCount) {
+    HapticFeedback.heavyImpact();
+    final phone = profile.phone.isNotEmpty ? profile.phone : '+91 98765 43210';
+    final text = lang == 'mr'
+      ? '🙏 नमस्कार! माझे नाव ${profile.name} आहे.\n\nमी ${profile.location} येथील ${profile.craftType} कारागीर आहे.\n\nफोन: $phone\n\nशिल्पसेतू दुकानात माझ्या $productCount वस्तू विक्रीसाठी उपलब्ध आहेत.\n\nमाझी सर्व कमाई थेट बँकेत विना दलाल जमा होते.'
+      : lang == 'hi'
+        ? '🙏 नमस्ते! मेरा नाम ${profile.name} है।\n\nमैं ${profile.location} से ${profile.craftType} का कारीगर हूँ।\n\nफोन: $phone\n\nशिल्पसेतु दुकान में मेरे $productCount उत्पाद हैं।\n\nमेरी कमाई सीधे बैंक में जमा होती है।'
+        : '🙏 Hello! My name is ${profile.name}.\n\nI am a ${profile.craftType} artisan from ${profile.location}.\n\nPhone: $phone\n\nI have $productCount items in my ShilpSetu shop.\n\nAll earnings are credited directly to my bank account.';
 
     showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surfaceContainerLowest,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-            left: 20,
-            right: 20,
-            top: 16,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 44,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: AppColors.divider,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Edit Artisan Profile',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(ctx),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Name
-                _buildFieldLabel('Full Name / पूर्ण नाव'),
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    hintText: 'e.g. Sunny Patil',
-                    prefixIcon: Icon(Icons.person_outline, color: AppColors.primary),
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // Craft Type
-                _buildFieldLabel('Craft Type / हस्तकला प्रकार'),
-                TextField(
-                  controller: craftController,
-                  decoration: InputDecoration(
-                    hintText: 'e.g. Pottery, Textiles',
-                    prefixIcon: Icon(Icons.brush_outlined, color: AppColors.primary),
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // Craft chips suggestions
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: craftSuggestions.map((craft) {
-                    final isSelected = craftController.text == craft;
-                    return GestureDetector(
-                      onTap: () {
-                        setSheetState(() {
-                          craftController.text = craft;
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: isSelected ? AppColors.primary : AppColors.surfaceContainer,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isSelected ? AppColors.primary : AppColors.outlineVariant,
-                          ),
-                        ),
-                        child: Text(
-                          craft,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: isSelected ? Colors.white : AppColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 14),
-
-                // Location
-                _buildFieldLabel('City & District / शहर आणि जिल्हा'),
-                TextField(
-                  controller: locationController,
-                  decoration: InputDecoration(
-                    hintText: 'e.g. Kolhapur, Maharashtra',
-                    prefixIcon: Icon(Icons.location_on_outlined, color: AppColors.primary),
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // Phone
-                _buildFieldLabel('Phone / दूरध्वनी'),
-                TextField(
-                  controller: phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    hintText: '+91 9876543210',
-                    prefixIcon: Icon(Icons.phone_outlined, color: AppColors.primary),
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // Bio
-                _buildFieldLabel('Craft Story / Bio'),
-                TextField(
-                  controller: bioController,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    hintText: 'Share a short story about your craftsmanship...',
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Save Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      if (nameController.text.trim().isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Please enter your name')),
-                        );
-                        return;
-                      }
-
-                      await context.read<UserProfileProvider>().updateProfile(
-                        name: nameController.text,
-                        craftType: craftController.text.isNotEmpty ? craftController.text : profile.craftType,
-                        location: locationController.text.isNotEmpty ? locationController.text : profile.location,
-                        state: stateController.text.isNotEmpty ? stateController.text : profile.state,
-                        phone: phoneController.text,
-                        bio: bioController.text,
-                      );
-
-                      if (ctx.mounted) {
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Row(
-                              children: const [
-                                Icon(Icons.check_circle, color: Colors.white),
-                                SizedBox(width: 8),
-                                Text('Profile updated successfully!'),
-                              ],
-                            ),
-                            backgroundColor: AppColors.success,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    child: const Text('Save Profile Details'),
-                  ),
-                ),
-                const SizedBox(height: 24),
-              ],
+      context: context, isScrollControlled: true, backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 16),
+            Row(children: [
+              Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: AppColors.primaryFixed, shape: BoxShape.circle),
+                child: const Icon(Icons.graphic_eq_rounded, color: AppColors.primary, size: 26)),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(_t(lang, en: 'Artisan Audio Profile', mr: 'माहिती बोलून दाखवत आहे 🔊', hi: 'आवाज में पहचान 🔊'),
+                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                Text(_t(lang, en: 'Your profile in your language', mr: 'तुमची माहिती मराठीत', hi: 'आपकी जानकारी हिंदी में'),
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              ])),
+              IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+            ]),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: const Color(0xFFFFF8EE), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE5C096))),
+              child: Text(text, style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600, color: AppColors.textPrimary, height: 1.6)),
             ),
-          ),
+            const SizedBox(height: 14),
+            Row(children: [
+              Expanded(child: OutlinedButton.icon(
+                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_t(lang, en: 'Replaying...', mr: 'पुन्हा ऐकवत आहे...', hi: 'फिर से...')), duration: const Duration(seconds: 2))),
+                icon: const Icon(Icons.replay_rounded, size: 17),
+                label: Text(_t(lang, en: 'Replay 🔊', mr: 'पुन्हा ऐका 🔊', hi: 'फिर सुनें 🔊')),
+                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 13), side: const BorderSide(color: AppColors.primary), foregroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              )),
+              const SizedBox(width: 10),
+              Expanded(child: ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                child: Text(_t(lang, en: 'Got it 👍', mr: 'समजले 👍', hi: 'समझ गया 👍')),
+              )),
+            ]),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildFieldLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-
-  // ── Share Portfolio Sheet ─────────────────────────────────────────────────
-  void _showSharePortfolioSheet(BuildContext context, UserProfileModel profile) {
-    final portfolioUrl = 'https://shilpsetu.in/artisan/${profile.id}';
+  void _showEditProfileSheet(BuildContext context, UserProfileModel profile, String lang) {
+    final nameCtrl = TextEditingController(text: profile.name);
+    final phoneCtrl = TextEditingController(text: profile.phone);
+    final craftCtrl = TextEditingController(text: profile.craftType);
+    final locationCtrl = TextEditingController(text: profile.location);
+    final provider = context.read<UserProfileProvider>();
 
     showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surfaceContainerLowest,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
+      context: context, isScrollControlled: true, backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+        child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 44,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: AppColors.divider,
-                  borderRadius: BorderRadius.circular(3),
+              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+              const SizedBox(height: 16),
+              Text(_t(lang, en: 'Edit Profile', mr: 'माहिती बदला', hi: 'प्रोफाइल संपादित करें'),
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+              const SizedBox(height: 16),
+              _editField(nameCtrl, _t(lang, en: 'Full Name', mr: 'पूर्ण नाव', hi: 'पूरा नाम'), Icons.person_outline),
+              const SizedBox(height: 10),
+              _editField(phoneCtrl, _t(lang, en: 'Mobile Number', mr: 'मोबाईल नंबर', hi: 'मोबाइल नंबर'), Icons.phone_outlined, keyboard: TextInputType.phone),
+              const SizedBox(height: 10),
+              _editField(craftCtrl, _t(lang, en: 'Craft Type', mr: 'हस्तकला प्रकार', hi: 'हस्तशिल्प प्रकार'), Icons.palette_outlined),
+              const SizedBox(height: 10),
+              _editField(locationCtrl, _t(lang, en: 'Location / Village', mr: 'ठिकाण / गाव', hi: 'स्थान / गाँव'), Icons.location_on_outlined),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    await provider.updateProfile(name: nameCtrl.text.trim(), phone: phoneCtrl.text.trim(), craftType: craftCtrl.text.trim(), location: locationCtrl.text.trim());
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_t(lang, en: 'Profile updated!', mr: 'माहिती अद्यतन झाली!', hi: 'प्रोफाइल अपडेट हुई!')), backgroundColor: AppColors.success));
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                  child: Text(_t(lang, en: 'Save Changes', mr: 'बदल जतन करा', hi: 'परिवर्तन सहेजें'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
                 ),
-              ),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryFixed,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.qr_code_2_rounded, size: 48, color: AppColors.primary),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                'Share ${profile.name}\'s Portfolio',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Direct buyers to your verified ShilpSetu digital catalogue',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 18),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.divider),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.link, color: AppColors.textLight, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        portfolioUrl,
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.copy, size: 20),
-                      color: AppColors.primary,
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: portfolioUrl));
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Portfolio link copied to clipboard! 📋'),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: 'Check out my craft collection on ShilpSetu: $portfolioUrl'));
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Ready to share on WhatsApp! Link copied.')),
-                        );
-                      },
-                      icon: const Icon(Icons.message, size: 18),
-                      label: const Text('WhatsApp'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                        side: BorderSide(color: AppColors.primary),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: portfolioUrl));
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Link copied to clipboard! 📋')),
-                        );
-                      },
-                      icon: const Icon(Icons.share, size: 18),
-                      label: const Text('Copy Link'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
@@ -1725,199 +991,203 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ── Dialog Helpers ────────────────────────────────────────────────────────
-  void _showSchemeDialog(String title, String details) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceContainerLowest,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(title, style: Theme.of(context).textTheme.headlineSmall),
-        content: Text(details, style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.5)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Verification documents requested. Our field representative will contact you.'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Apply Now'),
-          ),
-        ],
+  Widget _editField(TextEditingController ctrl, String label, IconData icon, {TextInputType keyboard = TextInputType.text}) {
+    return TextField(
+      controller: ctrl,
+      keyboardType: keyboard,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
+        filled: true,
+        fillColor: const Color(0xFFF7F4F0),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+        labelStyle: const TextStyle(color: AppColors.textLight, fontSize: 13.5),
       ),
     );
   }
-  // ── Settings Bottom Sheet ──────────────────────────────────────────────────
-  void _showSettingsSheet() {
+
+  void _showShareSheet(BuildContext context, UserProfileModel profile, String lang) {
     showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surfaceContainerLowest,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
+      context: context, backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 8),
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 16),
+            Text(_t(lang, en: 'Share My Profile', mr: 'प्रोफाइल शेअर करा', hi: 'प्रोफाइल शेयर करें'),
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+            const SizedBox(height: 14),
             Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(color: AppColors.divider, borderRadius: BorderRadius.circular(2)),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: AppColors.primaryFixed, borderRadius: BorderRadius.circular(14)),
+              child: Column(children: [
+                Text('🏺 ${profile.name} — ${profile.craftType}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppColors.primaryDark)),
+                const SizedBox(height: 4),
+                Text('📍 ${profile.location}', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                const SizedBox(height: 4),
+                Text('🛍️ shilpsetu.in/artisan/${profile.id}', style: const TextStyle(fontSize: 12.5, color: AppColors.primary, fontWeight: FontWeight.w700)),
+              ]),
             ),
-            const SizedBox(height: 16),
-            Text('Settings', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 12),
-            ListTile(
-              leading: Icon(Icons.language_outlined, color: AppColors.primary),
-              title: const Text('Language / भाषा'),
-              subtitle: const Text('मराठी / Hindi / English'),
-              trailing: Icon(Icons.chevron_right, color: AppColors.textLight),
-              onTap: () {
-                Navigator.pop(ctx);
-                _showLanguageSheet();
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.notifications_outlined, color: AppColors.primary),
-              title: const Text('Notifications'),
-              trailing: Icon(Icons.chevron_right, color: AppColors.textLight),
-              onTap: () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Notifications are enabled')),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.help_outline, color: AppColors.primary),
-              title: const Text('Help & Artisan Support'),
-              trailing: Icon(Icons.chevron_right, color: AppColors.textLight),
-              onTap: () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Helpline: Toll-free 1800-SHILP-AI')),
-                );
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: Icon(Icons.logout_rounded, color: AppColors.error),
-              title: Text('Sign Out', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
-              onTap: () {
-                Navigator.pop(ctx);
-                _confirmSignOut();
-              },
-            ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 14),
+            Row(children: [
+              Expanded(child: ElevatedButton.icon(
+                onPressed: () { Navigator.pop(ctx); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Portfolio link copied!'), behavior: SnackBarBehavior.floating)); },
+                icon: const Icon(Icons.copy_rounded, size: 18),
+                label: Text(_t(lang, en: 'Copy Link', mr: 'लिंक कॉपी करा', hi: 'लिंक कॉपी करें')),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              )),
+              const SizedBox(width: 10),
+              Expanded(child: OutlinedButton.icon(
+                onPressed: () { Navigator.pop(ctx); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Opening WhatsApp share...'), behavior: SnackBarBehavior.floating)); },
+                icon: const Icon(Icons.share_rounded, size: 18),
+                label: const Text('WhatsApp'),
+                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 13), side: const BorderSide(color: AppColors.outline), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              )),
+            ]),
           ],
         ),
       ),
     );
   }
 
-  void _showLanguageSheet() {
-    final provider = context.read<UserProfileProvider>();
+  void _showSettingsSheet(BuildContext context, String lang, UserProfileProvider provider) {
     showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surfaceContainerLowest,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      context: context, backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 16),
-            const Text('Choose Language / भाषा निवडा', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 10),
-            ListTile(
-              title: const Text('मराठी (Marathi)'),
-              trailing: provider.selectedLanguage == 'mr' ? const Icon(Icons.check, color: AppColors.primary) : null,
-              onTap: () {
-                provider.setLanguage('mr');
-                Navigator.pop(ctx);
-              },
-            ),
-            ListTile(
-              title: const Text('हिंदी (Hindi)'),
-              trailing: provider.selectedLanguage == 'hi' ? const Icon(Icons.check, color: AppColors.primary) : null,
-              onTap: () {
-                provider.setLanguage('hi');
-                Navigator.pop(ctx);
-              },
-            ),
-            ListTile(
-              title: const Text('English'),
-              trailing: provider.selectedLanguage == 'en' ? const Icon(Icons.check, color: AppColors.primary) : null,
-              onTap: () {
-                provider.setLanguage('en');
-                Navigator.pop(ctx);
-              },
-            ),
-            const SizedBox(height: 16),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 16),
+              Text(_t(lang, en: 'Settings', mr: 'सेटिंग्ज', hi: 'सेटिंग्स'),
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+              const SizedBox(height: 12),
+              ListTile(
+                leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: AppColors.primaryFixed, borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.key_rounded, color: AppColors.primary, size: 20)),
+                title: Text(_t(lang, en: 'AI API Key', mr: 'AI API की', hi: 'AI API कुंजी'), style: const TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: Text(_t(lang, en: 'Configure Gemini API', mr: 'Gemini API सेट करा', hi: 'Gemini API सेट करें'), style: const TextStyle(fontSize: 12)),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () { Navigator.pop(ctx); context.push('/settings'); },
+              ),
+              ListTile(
+                leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(10)), child: Icon(Icons.logout_rounded, color: Colors.red.shade600, size: 20)),
+                title: Text(_t(lang, en: 'Sign Out', mr: 'बाहेर पडा', hi: 'साइन आउट'), style: TextStyle(fontWeight: FontWeight.w700, color: Colors.red.shade600)),
+                trailing: Icon(Icons.chevron_right, color: Colors.red.shade300),
+                onTap: () { Navigator.pop(ctx); _confirmSignOut(context, lang); },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // ── Sign Out Confirmation ──────────────────────────────────────────────────
-  void _confirmSignOut() {
-    final lang = context.read<UserProfileProvider>().selectedLanguage;
+  void _confirmSignOut(BuildContext context, String lang) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceContainerLowest,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          _t(lang, en: 'Sign Out?', mr: 'खात्यातून बाहेर पडायचे का?', hi: 'लॉगआउट करना चाहते हैं?'),
-          style: Theme.of(context).textTheme.headlineSmall,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: Colors.red.shade50, shape: BoxShape.circle),
+              child: Icon(Icons.logout_rounded, color: Colors.red.shade600, size: 22),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                _t(lang, en: 'Sign Out?', mr: 'बाहेर पडायचे आहे?', hi: 'साइन आउट करना है?'),
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+              ),
+            ),
+          ],
         ),
         content: Text(
           _t(lang,
-            en: 'Are you sure you want to sign out of your artisan account?',
-            mr: 'तुम्हाला तुमच्या कारागीर खात्यातून बाहेर पडायचे आहे का?',
-            hi: 'क्या आप अपने कारीगर खाते से बाहर निकलना चाहते हैं?'
+            en: 'You will be signed out and returned to the login screen.',
+            mr: 'तुम्ही बाहेर पडाल आणि लॉगिन स्क्रीनवर पोहोचाल.',
+            hi: 'आप साइन आउट हो जाएंगे और लॉगिन स्क्रीन पर पहुंचेंगे।',
           ),
-          style: Theme.of(context).textTheme.bodyMedium,
+          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text(
               _t(lang, en: 'Cancel', mr: 'रद्द करा', hi: 'रद्द करें'),
-              style: TextStyle(color: AppColors.textLight),
+              style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textSecondary),
             ),
           ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              await AuthService().signOut();
-              if (!mounted) return;
-              await context.read<UserProfileProvider>().clearProfile();
-              if (!mounted) return;
-              context.go('/login');
+              try {
+                await AuthService().signOut();
+              } catch (e) {
+                debugPrint('AuthService signOut error: $e');
+              }
+              if (context.mounted) {
+                try {
+                  await context.read<UserProfileProvider>().clearProfile();
+                  context.read<NavigationProvider>().setIndex(0);
+                } catch (e) {
+                  debugPrint('Profile clear error: $e');
+                }
+                context.go('/login');
+              }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
+              backgroundColor: Colors.red.shade600,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: Text(_t(lang, en: 'Sign Out', mr: 'बाहेर पडा', hi: 'बाहर निकलें')),
+            child: Text(
+              _t(lang, en: 'Sign Out', mr: 'बाहेर पडा', hi: 'साइन आउट'),
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
           ),
         ],
       ),
     );
   }
+}
+
+// ── Sliver Tab Bar Delegate ───────────────────────────────────────────────────
+class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar tabBar;
+  _SliverTabBarDelegate(this.tabBar);
+
+  @override
+  double get minExtent => tabBar.preferredSize.height + 1;
+  @override
+  double get maxExtent => tabBar.preferredSize.height + 1;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: Colors.white,
+      child: Column(children: [tabBar, const Divider(height: 1)]),
+    );
+  }
+
+  @override
+  bool shouldRebuild(_SliverTabBarDelegate oldDelegate) => tabBar != oldDelegate.tabBar;
+}
+
+// ── Scheme Data Model ─────────────────────────────────────────────────────────
+class _SchemeData {
+  final String emoji, title, subtitle, tag, detail;
+  final Color color;
+  const _SchemeData({required this.emoji, required this.title, required this.subtitle, required this.tag, required this.color, required this.detail});
 }

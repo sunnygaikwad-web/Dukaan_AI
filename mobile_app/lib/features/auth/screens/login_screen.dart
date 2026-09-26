@@ -139,11 +139,9 @@ class _LoginScreenState extends State<LoginScreen> {
             return SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: EdgeInsets.fromLTRB(20, 16, 20, bottomInset > 0 ? bottomInset + 16 : 24),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight - 32),
-                child: IntrinsicHeight(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       // ── TOP SECTION: Header & Branding ────────────
                       Column(
@@ -583,8 +581,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ).animate().fadeIn(delay: 350.ms, duration: 400.ms),
                     ],
                   ),
-                ),
-              ),
             );
           },
         ),

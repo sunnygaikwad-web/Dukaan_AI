@@ -293,21 +293,21 @@ class UserProfileProvider extends ChangeNotifier {
 
   /// Update profile details (e.g. from Edit Profile screen)
   Future<void> updateProfile({
-    required String name,
-    required String craftType,
-    required String location,
-    required String state,
-    required String phone,
-    required String bio,
+    String? name,
+    String? craftType,
+    String? location,
+    String? state,
+    String? phone,
+    String? bio,
     String? role,
   }) async {
     _profile = _profile.copyWith(
-      name: name.trim(),
-      craftType: craftType.trim(),
-      location: location.trim(),
-      state: state.trim(),
-      phone: phone.trim(),
-      bio: bio.trim(),
+      name: name != null ? name.trim() : _profile.name,
+      craftType: craftType != null ? craftType.trim() : _profile.craftType,
+      location: location != null ? location.trim() : _profile.location,
+      state: state != null ? state.trim() : _profile.state,
+      phone: phone != null ? phone.trim() : _profile.phone,
+      bio: bio != null ? bio.trim() : _profile.bio,
       role: role ?? _profile.role,
     );
 

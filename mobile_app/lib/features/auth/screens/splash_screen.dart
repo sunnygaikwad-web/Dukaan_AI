@@ -173,11 +173,11 @@ class _SplashScreenState extends State<SplashScreen>
                     child: Column(
                       children: [
                         Text(
-                          'Dukaan',
+                          'ShilpSetu',
                           style: TextStyle(
                             fontFamily: 'Poppins',
                             color: AppColors.textPrimary,
-                            fontSize: 40,
+                            fontSize: 38,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 1,
                           ),
@@ -190,12 +190,12 @@ class _SplashScreenState extends State<SplashScreen>
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            'Smart Digital Store & Artisan Marketplace',
+                            'National Artisan & Handicraft Marketplace',
                             style: TextStyle(
                               fontFamily: 'Poppins',
                               color: AppColors.primary,
                               fontSize: 12,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w600,
                               letterSpacing: 0.5,
                             ),
                           ),

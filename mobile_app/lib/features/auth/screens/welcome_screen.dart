@@ -250,7 +250,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'Dukaan AI',
+                  'ShilpSetu AI',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 30,
@@ -260,11 +260,11 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Your AI-Powered Business Manager',
+                  'AI-Powered Digital Setu for Indian Artisans',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.85),
                     fontSize: 13,
-                    fontWeight: FontWeight.w400,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
