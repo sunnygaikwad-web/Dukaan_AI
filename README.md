@@ -87,6 +87,10 @@ graph TD
 
 ## 📱 Tech Stack
 
+<p align="center">
+  <img src="assets/tech_stack_bw.png" alt="ShilpSetu AI Tech Stack Architecture Diagram (Monochrome)" width="100%" />
+</p>
+
 | Layer | Technology | Details |
 |---|---|---|
 | **Mobile Frontend** | Flutter & Dart 3 | Cross-platform (Android, iOS, Web) |
