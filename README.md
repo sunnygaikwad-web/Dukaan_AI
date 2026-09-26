@@ -45,6 +45,11 @@ Built with **accessibility-first design**, ShilpSetu supports regional languages
 
 ## 🏗️ System Architecture
 
+<p align="center">
+  <img src="assets/system_architecture.png" alt="ShilpSetu AI System Architecture Diagram" width="100%" />
+</p>
+
+### Architecture Data Flow
 ```mermaid
 graph TD
     subgraph Client["Mobile & Web Client (Flutter)"]
