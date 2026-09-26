@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/product_model.dart';
+import '../../services/api_service.dart';
 
 class ProductProvider extends ChangeNotifier {
   static const String _prefKey = 'saved_products_list';
@@ -96,6 +97,13 @@ class ProductProvider extends ChangeNotifier {
           .timeout(const Duration(seconds: 5));
     } catch (e) {
       debugPrint('Firestore product save note: $e');
+    }
+
+    // Sync to ShilpSetu Backend
+    try {
+      await ApiService().saveProduct(_productToMap(product));
+    } catch (e) {
+      debugPrint('Backend product save note: $e');
     }
   }
 

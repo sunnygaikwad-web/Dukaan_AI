@@ -1,58 +1,19 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
-import '../../../core/theme/app_theme.dart';
-import '../../../core/services/auth_service.dart';
-import '../../../core/providers/user_profile_provider.dart';
-import '../../../core/providers/product_provider.dart';
-import '../../../core/constants/app_localizations.dart';
+# scratch/patch_profile.py
+import re
 
-class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+profile_file = r"c:\Users\Sunny\AndroidStudioProjects\ShilpSetu_AI\mobile_app\lib\features\artisan\screens\profile_screen.dart"
 
-  @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
-}
+with open(profile_file, "r", encoding="utf-8") as f:
+    content = f.read()
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  @override
-  Widget build(BuildContext context) {
-    final profileProvider = context.watch<UserProfileProvider>();
-    final productProvider = context.watch<ProductProvider>();
-    final profile = profileProvider.profile;
-    final lang = profileProvider.selectedLanguage;
-    final activeProductsCount = productProvider.products.length;
+# Locate the start: SliverToBoxAdapter(
+start_marker = "          SliverToBoxAdapter(\n            child: Column(\n              children: [\n                // ─── Profile Header Card"
+end_marker = "  // ── Edit Profile Modal Sheet ────────────────────────────────────────────────"
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
-          // ─── App Bar ─────────────────────────────────────────────────────
-          SliverAppBar(
-            pinned: true,
-            backgroundColor: AppColors.background,
-            elevation: 0,
-            title: Text(
-              AppLocalizations.tr('nav_profile', lang),
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            actions: [
-              IconButton(
-                icon: Icon(Icons.share_outlined, color: AppColors.textPrimary),
-                onPressed: () => _showSharePortfolioSheet(context, profile),
-              ),
-              IconButton(
-                icon: Icon(Icons.settings_outlined, color: AppColors.textPrimary),
-                onPressed: () => _showSettingsSheet(),
-              ),
-            ],
-          ),
+assert start_marker in content, "start_marker not found"
+assert end_marker in content, "end_marker not found"
 
-          SliverToBoxAdapter(
+replacement = """          SliverToBoxAdapter(
             child: Column(
               children: [
                 // ─── Direct Top 1-Tap Language Bar ──────────────────────────
@@ -166,7 +127,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final initials = profile.name.trim().isNotEmpty
         ? profile.name
             .trim()
-            .split(RegExp(r'\s+'))
+            .split(RegExp(r'\\s+'))
             .where((s) => s.isNotEmpty)
             .map((e) => e[0])
             .take(2)
@@ -490,21 +451,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final phone = profile.phone.isNotEmpty ? profile.phone : '+91 98765 43210';
     final spokenText = lang == 'mr'
-        ? '🙏 नमस्कार! माझे नाव ${profile.name} आहे.\n\n'
-          'मी ${profile.location} येथील ${profile.craftType} कारागीर आहे.\n\n'
-          'माझा नोंदणीकृत फोन नंबर $phone आहे. सर्व ग्राहक या नंबरवर संपर्क करू शकतात.\n\n'
-          'शिल्पसेतू दुकानात माझ्या $activeProductsCount वस्तू विक्रीसाठी उपलब्ध आहेत.\n\n'
+        ? '🙏 नमस्कार! माझे नाव ${profile.name} आहे.\\n\\n'
+          'मी ${profile.location} येथील ${profile.craftType} कारागीर आहे.\\n\\n'
+          'माझा नोंदणीकृत फोन नंबर $phone आहे. सर्व ग्राहक या नंबरवर संपर्क करू शकतात.\\n\\n'
+          'शिल्पसेतू दुकानात माझ्या $activeProductsCount वस्तू विक्रीसाठी उपलब्ध आहेत.\\n\\n'
           'माझी सर्व कमाई थेट माझ्या बँक खात्यात विना दलाल सुरक्षित जमा होते.'
         : (lang == 'hi'
-            ? '🙏 नमस्ते! मेरा नाम ${profile.name} है।\n\n'
-              'मैं ${profile.location} से ${profile.craftType} का प्रमाणित कारीगर हूँ।\n\n'
-              'मेरा पंजीकृत मोबाइल नंबर $phone है। सभी ग्राहक इसी नंबर पर संपर्क कर सकते हैं।\n\n'
-              'शिल्पसेतु दुकान में मेरे $activeProductsCount उत्पाद बिक्री के लिए तैयार हैं।\n\n'
+            ? '🙏 नमस्ते! मेरा नाम ${profile.name} है।\\n\\n'
+              'मैं ${profile.location} से ${profile.craftType} का प्रमाणित कारीगर हूँ।\\n\\n'
+              'मेरा पंजीकृत मोबाइल नंबर $phone है। सभी ग्राहक इसी नंबर पर संपर्क कर सकते हैं।\\n\\n'
+              'शिल्पसेतु दुकान में मेरे $activeProductsCount उत्पाद बिक्री के लिए तैयार हैं।\\n\\n'
               'मेरी पूरी कमाई बिना किसी दलाल के सीधे मेरे बैंक खाते में सुरक्षित आती है।'
-            : '🙏 Hello! My name is ${profile.name}.\n\n'
-              'I am a certified ${profile.craftType} artisan from ${profile.location}.\n\n'
-              'My registered phone number is $phone. Customers can contact me here.\n\n'
-              'I currently have $activeProductsCount handmade items available in my shop.\n\n'
+            : '🙏 Hello! My name is ${profile.name}.\\n\\n'
+              'I am a certified ${profile.craftType} artisan from ${profile.location}.\\n\\n'
+              'My registered phone number is $phone. Customers can contact me here.\\n\\n'
+              'I currently have $activeProductsCount handmade items available in my shop.\\n\\n'
               'All my earnings are credited directly to my bank account with zero middlemen.');
 
     showModalBottomSheet(
@@ -1166,9 +1127,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     hi: 'पीएम विश्वकर्मा योजना और ऋण'
                   ),
                   _t(lang,
-                    en: 'Avail financial support under PM Vishwakarma Scheme:\n\n✓ ₹15,000 toolkit grant\n✓ Up to ₹3,00,000 credit at 5% low interest\n✓ Official Artisan identity card\n✓ Free skill training',
-                    mr: 'पीएम विश्वकर्मा योजनेअंतर्गत लाभ:\n\n✓ ₹१५,००० मोफत टूलकिट अनुदान\n✓ ₹३ लाखांपर्यंत ५% अत्यंत कमी व्याज दराने कर्ज\n✓ भारत सरकारचे अधिकृत ओळखपत्र\n✓ मोफत कौशल्य प्रशिक्षण',
-                    hi: 'पीएम विश्वकर्मा योजना के तहत लाभ:\n\n✓ ₹15,000 फ्री टूलकिट अनुदान\n✓ ₹3 लाख तक 5% रियायती ब्याज पर ऋण\n✓ भारत सरकार का आधिकारिक पहचान पत्र\n✓ निःशुल्क कौशल प्रशिक्षण'
+                    en: 'Avail financial support under PM Vishwakarma Scheme:\\n\\n✓ ₹15,000 toolkit grant\\n✓ Up to ₹3,00,000 credit at 5% low interest\\n✓ Official Artisan identity card\\n✓ Free skill training',
+                    mr: 'पीएम विश्वकर्मा योजनेअंतर्गत लाभ:\\n\\n✓ ₹१५,००० मोफत टूलकिट अनुदान\\n✓ ₹३ लाखांपर्यंत ५% अत्यंत कमी व्याज दराने कर्ज\\n✓ भारत सरकारचे अधिकृत ओळखपत्र\\n✓ मोफत कौशल्य प्रशिक्षण',
+                    hi: 'पीएम विश्वकर्मा योजना के तहत लाभ:\\n\\n✓ ₹15,000 फ्री टूलकिट अनुदान\\n✓ ₹3 लाख तक 5% रियायती ब्याज पर ऋण\\n✓ भारत सरकार का आधिकारिक पहचान पत्र\\n✓ निःशुल्क कौशल प्रशिक्षण'
                   ),
                 ),
                 child: _buildSchemeCard(
@@ -1193,9 +1154,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     hi: 'जीआई-टैग भौगोलिक पहचान'
                   ),
                   _t(lang,
-                    en: 'Geographical Indication (GI) certification provides legal protection and authentic heritage branding for your craft.\n\n✓ Legal protection against fake copies\n✓ Free government documentation\n✓ Premium prices in market',
-                    mr: 'GI-टॅग भौगोलिक मानांकन लाभ:\n\n✓ तुमच्या कलेला कायदेशीर संरक्षण\n✓ बाजारात जास्त आणि चांगला भाव\n✓ बनावट वस्तूंपासून संरक्षण\n✓ मोफत शासकीय कागदपत्र मदत',
-                    hi: 'जीआई-टैग पहचान के लाभ:\n\n✓ आपके हस्तशिल्प को कानूनी सुरक्षा\n✓ बाजार में बेहतर और उचित मूल्य\n✓ नकली माल से सुरक्षा\n✓ निःशुल्क सरकारी सहायता'
+                    en: 'Geographical Indication (GI) certification provides legal protection and authentic heritage branding for your craft.\\n\\n✓ Legal protection against fake copies\\n✓ Free government documentation\\n✓ Premium prices in market',
+                    mr: 'GI-टॅग भौगोलिक मानांकन लाभ:\\n\\n✓ तुमच्या कलेला कायदेशीर संरक्षण\\n✓ बाजारात जास्त आणि चांगला भाव\\n✓ बनावट वस्तूंपासून संरक्षण\\n✓ मोफत शासकीय कागदपत्र मदत',
+                    hi: 'जीआई-टैग पहचान के लाभ:\\n\\n✓ आपके हस्तशिल्प को कानूनी सुरक्षा\\n✓ बाजार में बेहतर और उचित मूल्य\\n✓ नकली माल से सुरक्षा\\n✓ निःशुल्क सरकारी सहायता'
                   ),
                 ),
                 child: _buildSchemeCard(
@@ -1369,511 +1330,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ── Edit Profile Modal Sheet ────────────────────────────────────────────────
-  void _showEditProfileSheet(BuildContext context, UserProfileModel profile) {
-    final nameController = TextEditingController(text: profile.name);
-    final craftController = TextEditingController(text: profile.craftType);
-    final locationController = TextEditingController(text: profile.location);
-    final stateController = TextEditingController(text: profile.state);
-    final phoneController = TextEditingController(text: profile.phone);
-    final bioController = TextEditingController(text: profile.bio);
+"""
 
-    final craftSuggestions = [
-      'Textiles', 'Pottery', 'Woodcraft', 'Jewellery',
-      'Paintings', 'Weaving', 'Stone Art', 'Terracotta',
-    ];
+start_pos = content.index(start_marker)
+end_pos = content.index(end_marker)
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surfaceContainerLowest,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-            left: 20,
-            right: 20,
-            top: 16,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 44,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: AppColors.divider,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Edit Artisan Profile',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(ctx),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
+new_content = content[:start_pos] + replacement + content[end_pos:]
 
-                // Name
-                _buildFieldLabel('Full Name / पूर्ण नाव'),
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    hintText: 'e.g. Sunny Patil',
-                    prefixIcon: Icon(Icons.person_outline, color: AppColors.primary),
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // Craft Type
-                _buildFieldLabel('Craft Type / हस्तकला प्रकार'),
-                TextField(
-                  controller: craftController,
-                  decoration: InputDecoration(
-                    hintText: 'e.g. Pottery, Textiles',
-                    prefixIcon: Icon(Icons.brush_outlined, color: AppColors.primary),
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // Craft chips suggestions
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: craftSuggestions.map((craft) {
-                    final isSelected = craftController.text == craft;
-                    return GestureDetector(
-                      onTap: () {
-                        setSheetState(() {
-                          craftController.text = craft;
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: isSelected ? AppColors.primary : AppColors.surfaceContainer,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isSelected ? AppColors.primary : AppColors.outlineVariant,
-                          ),
-                        ),
-                        child: Text(
-                          craft,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: isSelected ? Colors.white : AppColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 14),
-
-                // Location
-                _buildFieldLabel('City & District / शहर आणि जिल्हा'),
-                TextField(
-                  controller: locationController,
-                  decoration: InputDecoration(
-                    hintText: 'e.g. Kolhapur, Maharashtra',
-                    prefixIcon: Icon(Icons.location_on_outlined, color: AppColors.primary),
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // Phone
-                _buildFieldLabel('Phone / दूरध्वनी'),
-                TextField(
-                  controller: phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    hintText: '+91 9876543210',
-                    prefixIcon: Icon(Icons.phone_outlined, color: AppColors.primary),
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // Bio
-                _buildFieldLabel('Craft Story / Bio'),
-                TextField(
-                  controller: bioController,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    hintText: 'Share a short story about your craftsmanship...',
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Save Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      if (nameController.text.trim().isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Please enter your name')),
-                        );
-                        return;
-                      }
-
-                      await context.read<UserProfileProvider>().updateProfile(
-                        name: nameController.text,
-                        craftType: craftController.text.isNotEmpty ? craftController.text : profile.craftType,
-                        location: locationController.text.isNotEmpty ? locationController.text : profile.location,
-                        state: stateController.text.isNotEmpty ? stateController.text : profile.state,
-                        phone: phoneController.text,
-                        bio: bioController.text,
-                      );
-
-                      if (ctx.mounted) {
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Row(
-                              children: const [
-                                Icon(Icons.check_circle, color: Colors.white),
-                                SizedBox(width: 8),
-                                Text('Profile updated successfully!'),
-                              ],
-                            ),
-                            backgroundColor: AppColors.success,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    child: const Text('Save Profile Details'),
-                  ),
-                ),
-                const SizedBox(height: 24),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFieldLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-
-  // ── Share Portfolio Sheet ─────────────────────────────────────────────────
-  void _showSharePortfolioSheet(BuildContext context, UserProfileModel profile) {
-    final portfolioUrl = 'https://shilpsetu.in/artisan/${profile.id}';
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surfaceContainerLowest,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 44,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: AppColors.divider,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryFixed,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.qr_code_2_rounded, size: 48, color: AppColors.primary),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                'Share ${profile.name}\'s Portfolio',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Direct buyers to your verified ShilpSetu digital catalogue',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 18),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.divider),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.link, color: AppColors.textLight, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        portfolioUrl,
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.copy, size: 20),
-                      color: AppColors.primary,
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: portfolioUrl));
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Portfolio link copied to clipboard! 📋'),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: 'Check out my craft collection on ShilpSetu: $portfolioUrl'));
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Ready to share on WhatsApp! Link copied.')),
-                        );
-                      },
-                      icon: const Icon(Icons.message, size: 18),
-                      label: const Text('WhatsApp'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                        side: BorderSide(color: AppColors.primary),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: portfolioUrl));
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Link copied to clipboard! 📋')),
-                        );
-                      },
-                      icon: const Icon(Icons.share, size: 18),
-                      label: const Text('Copy Link'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── Dialog Helpers ────────────────────────────────────────────────────────
-  void _showSchemeDialog(String title, String details) {
+# Also update _confirmSignOut to be localized
+old_signout = """  void _confirmSignOut() {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surfaceContainerLowest,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(title, style: Theme.of(context).textTheme.headlineSmall),
-        content: Text(details, style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.5)),
+        title: Text('Sign Out?', style: Theme.of(context).textTheme.headlineSmall),
+        content: Text(
+          'Are you sure you want to sign out of your artisan account?',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close'),
+            child: Text('Cancel', style: TextStyle(color: AppColors.textLight)),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Verification documents requested. Our field representative will contact you.'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              await AuthService().signOut();
+              if (!mounted) return;
+              await context.read<UserProfileProvider>().clearProfile();
+              if (!mounted) return;
+              context.go('/login');
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Apply Now'),
+            child: const Text('Sign Out'),
           ),
         ],
       ),
     );
-  }
-  // ── Settings Bottom Sheet ──────────────────────────────────────────────────
-  void _showSettingsSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surfaceContainerLowest,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(color: AppColors.divider, borderRadius: BorderRadius.circular(2)),
-            ),
-            const SizedBox(height: 16),
-            Text('Settings', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 12),
-            ListTile(
-              leading: Icon(Icons.language_outlined, color: AppColors.primary),
-              title: const Text('Language / भाषा'),
-              subtitle: const Text('मराठी / Hindi / English'),
-              trailing: Icon(Icons.chevron_right, color: AppColors.textLight),
-              onTap: () {
-                Navigator.pop(ctx);
-                _showLanguageSheet();
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.notifications_outlined, color: AppColors.primary),
-              title: const Text('Notifications'),
-              trailing: Icon(Icons.chevron_right, color: AppColors.textLight),
-              onTap: () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Notifications are enabled')),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.help_outline, color: AppColors.primary),
-              title: const Text('Help & Artisan Support'),
-              trailing: Icon(Icons.chevron_right, color: AppColors.textLight),
-              onTap: () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Helpline: Toll-free 1800-SHILP-AI')),
-                );
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: Icon(Icons.logout_rounded, color: AppColors.error),
-              title: Text('Sign Out', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
-              onTap: () {
-                Navigator.pop(ctx);
-                _confirmSignOut();
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
+  }"""
 
-  void _showLanguageSheet() {
-    final provider = context.read<UserProfileProvider>();
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surfaceContainerLowest,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 16),
-            const Text('Choose Language / भाषा निवडा', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 10),
-            ListTile(
-              title: const Text('मराठी (Marathi)'),
-              trailing: provider.selectedLanguage == 'mr' ? const Icon(Icons.check, color: AppColors.primary) : null,
-              onTap: () {
-                provider.setLanguage('mr');
-                Navigator.pop(ctx);
-              },
-            ),
-            ListTile(
-              title: const Text('हिंदी (Hindi)'),
-              trailing: provider.selectedLanguage == 'hi' ? const Icon(Icons.check, color: AppColors.primary) : null,
-              onTap: () {
-                provider.setLanguage('hi');
-                Navigator.pop(ctx);
-              },
-            ),
-            ListTile(
-              title: const Text('English'),
-              trailing: provider.selectedLanguage == 'en' ? const Icon(Icons.check, color: AppColors.primary) : null,
-              onTap: () {
-                provider.setLanguage('en');
-                Navigator.pop(ctx);
-              },
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Sign Out Confirmation ──────────────────────────────────────────────────
-  void _confirmSignOut() {
+new_signout = """  void _confirmSignOut() {
     final lang = context.read<UserProfileProvider>().selectedLanguage;
     showDialog(
       context: context,
@@ -1919,5 +1421,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
-  }
-}
+  }"""
+
+if old_signout in new_content:
+    new_content = new_content.replace(old_signout, new_signout)
+    print("Sign out replaced with localized version.")
+else:
+    print("Warning: old_signout not found")
+
+with open(profile_file, "w", encoding="utf-8") as f:
+    f.write(new_content)
+
+print("Profile screen patched successfully!")

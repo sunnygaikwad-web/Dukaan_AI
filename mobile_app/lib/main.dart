@@ -44,6 +44,11 @@ import 'package:shilpsetu_ai/features/digital_mela/screens/digital_mela_screen.d
 // Admin Screen
 import 'package:shilpsetu_ai/features/admin/screens/admin_dashboard_screen.dart';
 
+// Chat & Communication
+import 'package:shilpsetu_ai/core/providers/chat_provider.dart';
+import 'package:shilpsetu_ai/features/chat/screens/chat_conversation_screen.dart';
+import 'package:shilpsetu_ai/features/chat/screens/chat_list_screen.dart';
+
 // Providers
 import 'package:shilpsetu_ai/core/providers/user_profile_provider.dart';
 import 'package:shilpsetu_ai/core/providers/product_provider.dart';
@@ -90,6 +95,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => BuyerRequestProvider()),
         ChangeNotifierProvider(create: (_) => ShortlistProvider()),
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
       ],
       child: const ShilpSetuApp(),
     ),
@@ -148,17 +154,32 @@ final _router = GoRouter(
     // --- Product Flow ---
     GoRoute(
       path: '/add_product',
+      redirect: (context, state) {
+        final role = context.read<UserProfileProvider>().currentRole;
+        if (role == 'buyer') return '/home';
+        return null;
+      },
       builder: (context, state) => const AddProductScreen(),
     ),
     GoRoute(
       path: '/ai_studio',
+      redirect: (context, state) {
+        final role = context.read<UserProfileProvider>().currentRole;
+        if (role == 'buyer') return '/home';
+        return null;
+      },
       builder: (context, state) {
-        final imageFile = state.extra as File;
+        final imageFile = state.extra is File ? state.extra as File : File('');
         return AiStudioScreen(imageFile: imageFile);
       },
     ),
     GoRoute(
       path: '/voice_cataloger',
+      redirect: (context, state) {
+        final role = context.read<UserProfileProvider>().currentRole;
+        if (role == 'buyer') return '/home';
+        return null;
+      },
       builder: (context, state) {
         final imageFile = state.extra is File ? state.extra as File : File('');
         return VoiceCatalogerScreen(imageFile: imageFile);
@@ -167,31 +188,37 @@ final _router = GoRouter(
     GoRoute(
       path: '/catalog_preview',
       builder: (context, state) {
-        final data = state.extra as Map<String, dynamic>;
+        final data = state.extra is Map<String, dynamic>
+            ? state.extra as Map<String, dynamic>
+            : <String, dynamic>{};
+        final imageFile = data['image'] is File
+            ? data['image'] as File
+            : File('');
+        final transcript = (data['transcript'] as String?) ?? '';
         return CatalogPreviewScreen(
-          imageFile: data['image'] as File,
-          transcript: data['transcript'] as String,
+          imageFile: imageFile,
+          transcript: transcript,
         );
       },
     ),
     GoRoute(
       path: '/multilingual_catalog',
       builder: (context, state) {
-        final product = state.extra as ProductModel?;
+        final product = state.extra is ProductModel ? state.extra as ProductModel : null;
         return MultilingualCatalogScreen(product: product);
       },
     ),
     GoRoute(
       path: '/heritage_story',
       builder: (context, state) {
-        final product = state.extra as ProductModel?;
+        final product = state.extra is ProductModel ? state.extra as ProductModel : null;
         return HeritageStoryScreen(product: product);
       },
     ),
     GoRoute(
       path: '/smart_pricing',
       builder: (context, state) {
-        final product = state.extra as ProductModel?;
+        final product = state.extra is ProductModel ? state.extra as ProductModel : null;
         return SmartPricingScreen(product: product);
       },
     ),
@@ -234,6 +261,24 @@ final _router = GoRouter(
       builder: (context, state) => const AdminDashboardScreen(),
     ),
 
+    // --- Chat & Communication ---
+    GoRoute(
+      path: '/chat_conversation',
+      builder: (context, state) {
+        String threadId = '';
+        if (state.extra is Map<String, dynamic>) {
+          threadId = (state.extra as Map<String, dynamic>)['threadId'] as String? ?? '';
+        } else if (state.extra is String) {
+          threadId = state.extra as String;
+        }
+        return ChatConversationScreen(threadId: threadId);
+      },
+    ),
+    GoRoute(
+      path: '/chat_list',
+      builder: (context, state) => const ChatListScreen(),
+    ),
+
     // --- Redirect root to splash ---
     GoRoute(
       path: '/',
@@ -250,7 +295,8 @@ class MainNavigation extends StatelessWidget {
   static const List<Widget> _artisanScreens = [
     HomeScreen(),
     MyProductsScreen(),
-    DigitalMelaScreen(),
+    // showArtisanActions:true enables artisan-only controls in the Mela tab
+    DigitalMelaScreen(showArtisanActions: true),
     ProfileScreen(),
   ];
 
@@ -344,7 +390,7 @@ class MainNavigation extends StatelessWidget {
                               ),
                             ],
                           ),
-                          child: const Icon(Icons.auto_awesome, color: Colors.white, size: 24),
+                          child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
                         ),
                         const SizedBox(height: 3),
                         Text(

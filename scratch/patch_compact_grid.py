@@ -1,102 +1,30 @@
-import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
-import 'package:shilpsetu_ai/models/product_model.dart';
-import 'package:shilpsetu_ai/core/providers/product_provider.dart';
-import 'package:shilpsetu_ai/core/providers/user_profile_provider.dart';
-import 'package:shilpsetu_ai/core/constants/app_craft_images.dart';
-import 'package:shilpsetu_ai/core/constants/app_localizations.dart';
-import 'package:shilpsetu_ai/core/theme/app_theme.dart';
+# scratch/patch_compact_grid.py
+file_path = r"c:\Users\Sunny\AndroidStudioProjects\ShilpSetu_AI\mobile_app\lib\features\products\screens\my_products_screen.dart"
 
-class MyProductsScreen extends StatefulWidget {
-  const MyProductsScreen({super.key});
+with open(file_path, "r", encoding="utf-8") as f:
+    content = f.read()
 
-  @override
-  State<MyProductsScreen> createState() => _MyProductsScreenState();
-}
-
-class _MyProductsScreenState extends State<MyProductsScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  String _t(String lang, {required String en, required String mr, required String hi}) {
-    if (lang == 'mr') return mr;
-    if (lang == 'hi') return hi;
-    return en;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final productProvider = context.watch<ProductProvider>();
-    final lang = context.watch<UserProfileProvider>().selectedLanguage;
-    final products = productProvider.products;
-    final published = productProvider.publishedProducts;
-    final drafts = productProvider.draftProducts;
-
-    final allTabLabel = _t(lang, en: 'All', mr: 'सर्व', hi: 'सभी');
-    final pubTabLabel = _t(lang, en: 'Published', mr: 'सुरू', hi: 'प्रकाशित');
-    final draftTabLabel = _t(lang, en: 'Drafts', mr: 'मसुदे', hi: 'ड्राफ्ट');
-
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(
-          AppLocalizations.tr('my_products_label', lang),
-          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
-        ),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textSecondary,
-          indicatorColor: AppColors.primary,
-          indicatorWeight: 3,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-          tabs: [
-            Tab(text: '$allTabLabel (${products.length})'),
-            Tab(text: '$pubTabLabel (${published.length})'),
-            Tab(text: '$draftTabLabel (${drafts.length})'),
-          ],
-        ),
+target = """    // 2-Column Responsive Grid Layout (Automatically expands in rows as products are added)
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 90),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.60,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 14,
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _ProductGrid(products: products, lang: lang),
-          _ProductGrid(products: published, lang: lang),
-          _ProductGrid(products: drafts, lang: lang),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/add_product'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_rounded),
-        label: Text(
-          _t(lang, en: 'Add Craft', mr: 'वस्तू जोडा', hi: 'उत्पाद जोड़ें'),
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        ),
-      ),
+      itemCount: products.length,
+      itemBuilder: (context, index) {
+        return _ProductCard(product: products[index], lang: lang);
+      },
     );
   }
 }
 
-class _ProductGrid extends StatelessWidget {
-  final List<ProductModel> products;
+class _ProductCard extends StatelessWidget {
+  final ProductModel product;
   final String lang;
-  const _ProductGrid({required this.products, required this.lang});
+  const _ProductCard({required this.product, required this.lang});
 
   String _t({required String en, required String mr, required String hi}) {
     if (lang == 'mr') return mr;
@@ -106,39 +34,229 @@ class _ProductGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (products.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
+    final Color statusColor = product.status == 'published'
+        ? AppColors.success
+        : (product.status == 'draft' ? Colors.orange.shade800 : Colors.grey);
+
+    final statusText = product.status == 'published'
+        ? _t(en: 'Active', mr: 'सुरू', hi: 'सक्रिय')
+        : (product.status == 'draft'
+            ? _t(en: 'Draft', mr: 'मसुदा', hi: 'ड्राफ्ट')
+            : _t(en: 'Archived', mr: 'संग्रहित', hi: 'संग्रहित'));
+
+    final displayTitle = product.localizedTitle(lang);
+    final displayImage = (product.enhancedImageUrl != null && product.enhancedImageUrl!.isNotEmpty)
+        ? product.enhancedImageUrl
+        : product.originalImageUrl;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.8)),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 8,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => context.push('/multilingual_catalog', extra: product),
+          borderRadius: BorderRadius.circular(18),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('📦', style: TextStyle(fontSize: 64)),
-              const SizedBox(height: 16),
-              Text(
-                _t(
-                  en: 'No products here yet',
-                  mr: 'येथे अद्याप कोणतीही उत्पादने नाहीत',
-                  hi: 'यहां अभी कोई उत्पाद नहीं है',
-                ),
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              // Craft Image with Floating Badges
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                    child: SizedBox(
+                      height: 125,
+                      width: double.infinity,
+                      child: AppCraftImages.buildCraftImage(
+                        imageUrl: displayImage,
+                        categoryOrTitle: '${product.title} ${product.metadata.category}',
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  // Status Badge (Top Right)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: statusColor,
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: const [
+                          BoxShadow(color: Colors.black26, blurRadius: 4),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            product.status == 'published'
+                                ? Icons.check_circle_rounded
+                                : Icons.edit_note_rounded,
+                            size: 11,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            statusText,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Craft Type Pill (Top Left)
+                  if (product.metadata.craftType.isNotEmpty)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                        constraints: const BoxConstraints(maxWidth: 85),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.65),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          product.metadata.craftType,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                _t(
-                  en: 'Tap "+ Add Craft" to list your heritage handicraft!',
-                  mr: 'आपल्या हस्तकलेची नोंदणी करण्यासाठी "+ वस्तू जोडा" दाबा!',
-                  hi: 'अपने हस्तशिल्प को जोड़ने के लिए "+ उत्पाद जोड़ें" दबाएं!',
+
+              // Product Info & Action Buttons
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            displayTitle,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                              color: AppColors.textPrimary,
+                              height: 1.2,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 3),
+                          Row(
+                            children: [
+                              const Icon(Icons.location_on_outlined, size: 11, color: AppColors.primary),
+                              const SizedBox(width: 2),
+                              Expanded(
+                                child: Text(
+                                  product.metadata.origin.isNotEmpty ? product.metadata.origin : 'India',
+                                  style: const TextStyle(
+                                    fontSize: 10.5,
+                                    color: AppColors.textSecondary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            product.price,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.primaryDark,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // Action Buttons Row (360° Catalog & Story)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => context.push('/multilingual_catalog', extra: product),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                                minimumSize: const Size(0, 30),
+                                side: const BorderSide(color: AppColors.primary, width: 1.2),
+                                foregroundColor: AppColors.primary,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              child: Text(
+                                _t(en: '360°', mr: 'कॅटलॉग', hi: 'कैटलॉग'),
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10.5),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () => context.push('/heritage_story', extra: product),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                                minimumSize: const Size(0, 30),
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              child: Text(
+                                _t(en: 'Story', mr: 'वारसा', hi: 'विरासत'),
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10.5),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
               ),
             ],
           ),
         ),
-      );
-    }
-    // Compact 2-Column Grid Layout (Optimized aspect ratio to eliminate wasted space)
+      ),
+    );
+  }
+}"""
+
+replacement = """    // Compact 2-Column Grid Layout (Optimized aspect ratio to eliminate wasted space)
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 85),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -388,4 +506,12 @@ class _ProductCard extends StatelessWidget {
       ),
     );
   }
-}
+}"""
+
+assert target in content, "Target code not found in file"
+content = content.replace(target, replacement)
+
+with open(file_path, "w", encoding="utf-8") as f:
+    f.write(content)
+
+print("Applied compact grid patch successfully!")

@@ -36,7 +36,7 @@ class _LanguageSelectScreenState extends State<LanguageSelectScreen> {
       'label': 'English',
       'sublabel': 'English',
       'flag': '🌐',
-      'sample': 'Welcome to ShilpSetu AI Platform',
+      'sample': 'Welcome to ShilpSetu Artisan Marketplace',
     },
   ];
 

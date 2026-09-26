@@ -36,7 +36,7 @@ class BuyerMatchingScreen extends StatelessWidget {
                     color: AppColors.lavender,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.auto_awesome, color: AppColors.secondary, size: 24),
+                  child: const Icon(Icons.handshake_rounded, color: AppColors.secondary, size: 24),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -44,7 +44,7 @@ class BuyerMatchingScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'AI found 4 verified B2B buyers for your catalog',
+                        '4 verified B2B buyers seeking your craft',
                         style: TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary),
                       ),
@@ -102,7 +102,7 @@ class _BuyerMatchCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 26,
-                backgroundColor: color.withOpacity(0.12),
+                backgroundColor: color.withValues(alpha: 0.12),
                 child: Text(
                   buyer.name[0],
                   style: TextStyle(
@@ -133,7 +133,7 @@ class _BuyerMatchCard extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(

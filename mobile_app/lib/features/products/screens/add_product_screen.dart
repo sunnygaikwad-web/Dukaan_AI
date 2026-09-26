@@ -8,7 +8,7 @@ import 'package:shilpsetu_ai/core/constants/app_craft_images.dart';
 import 'package:shilpsetu_ai/models/product_model.dart';
 import 'package:shilpsetu_ai/core/providers/user_profile_provider.dart';
 import 'package:shilpsetu_ai/core/providers/product_provider.dart';
-import 'package:shilpsetu_ai/services/api_service.dart';
+import 'package:shilpsetu_ai/core/services/ai_service.dart';
 import 'package:shilpsetu_ai/core/services/voice_recorder_service.dart';
 
 class AddProductScreen extends StatefulWidget {
@@ -26,23 +26,27 @@ class _AddProductScreenState extends State<AddProductScreen> {
   File? _pickedImage;
   String? _presetImageUrl;
   final ImagePicker _picker = ImagePicker();
+  bool _isAnalyzingImage = false;
 
   // Step 2: Craft & Real Voice Recording
   String _selectedCraft = 'Textiles';
   final TextEditingController _transcriptController = TextEditingController();
   final VoiceRecorderService _voiceRecorder = VoiceRecorderService();
   bool _isListening = false;
+  bool _isTranscribingVoice = false;
   bool _isPlayingAudio = false;
   int _recordingDuration = 0;
   String? _recordedAudioPath;
+  String? _voiceOriginalTranscript;
 
   // Step 3: AI Catalog & Pricing State
   bool _isAiGenerating = false;
-  double _recommendedPrice = 8499;
-  String _titleEn = 'Authentic Paithani Silk Saree with Gold Zari';
-  String _titleMr = 'अस्सल पैठणी रेशीम साडी सोन्याच्या जरीसह';
-  String _titleHi = 'सोने की ज़री के साथ प्रामाणिक पैठणी रेशम साड़ी';
-  String _heritageStory = 'Hand-woven on heritage wooden looms in Yeola, Maharashtra, continuing a 2,000-year Royal Maratha tradition.';
+  String? _aiDetectedCraft; // What Gemini Vision identified
+  double _recommendedPrice = 2499;
+  String _titleEn = 'Handcrafted Artisan Product';
+  String _titleMr = 'हस्तनिर्मित पारंपरिक उत्पादन';
+  String _titleHi = 'हस्तनिर्मित पारंपरिक उत्पाद';
+  String _heritageStory = 'Created with traditional artisan techniques, preserving indigenous cultural heritage.';
 
   final List<Map<String, dynamic>> _craftCategories = [
     {
@@ -126,14 +130,16 @@ class _AddProductScreenState extends State<AddProductScreen> {
     if (profile.craftType.isNotEmpty) {
       final match = _craftCategories.firstWhere(
         (c) => c['id'].toString().toLowerCase() == profile.craftType.toLowerCase(),
-        orElse: () => _craftCategories.first,
+        orElse: () => <String, dynamic>{},
       );
-      _selectedCraft = match['id'];
-      _recommendedPrice = match['defaultPrice'];
-      _titleEn = match['defaultEn'];
-      _titleMr = match['defaultMr'];
-      _titleHi = match['defaultHi'];
-      _heritageStory = match['story'];
+      if (match.isNotEmpty) {
+        _selectedCraft = match['id'];
+        _recommendedPrice = match['defaultPrice'];
+        _titleEn = match['defaultEn'];
+        _titleMr = match['defaultMr'];
+        _titleHi = match['defaultHi'];
+        _heritageStory = match['story'];
+      }
     }
 
     _voiceRecorder.isRecordingNotifier.addListener(_syncRecordingState);
@@ -177,9 +183,106 @@ class _AddProductScreenState extends State<AddProductScreen> {
           _pickedImage = File(picked.path);
           _presetImageUrl = null;
         });
+        // Automatically analyze the uploaded craft photo immediately!
+        await _autoAnalyzePickedImage();
       }
     } catch (e) {
       debugPrint('Image pick note: $e');
+    }
+  }
+
+  Future<void> _autoAnalyzePickedImage() async {
+    if (_pickedImage == null) return;
+    setState(() => _isAnalyzingImage = true);
+
+    try {
+      final aiService = AiService();
+      final profile = context.read<UserProfileProvider>().profile;
+      final location = profile.state.isNotEmpty ? '${profile.location}, ${profile.state}, India' : 'Maharashtra, India';
+
+      if (aiService.isLiveAiAvailable) {
+        final result = await aiService.analyzeImageAndGenerateCatalog(
+          imageFile: _pickedImage!,
+          artisanLocation: location,
+        );
+        if (mounted) {
+          setState(() {
+            if (result['category'] != null) {
+              final cat = result['category'].toString();
+              final matched = _craftCategories.firstWhere(
+                (c) => c['id'].toString().toLowerCase() == cat.toLowerCase() ||
+                       cat.toLowerCase().contains(c['id'].toString().toLowerCase()) ||
+                       c['id'].toString().toLowerCase().contains(cat.toLowerCase()),
+                orElse: () => <String, dynamic>{},
+              );
+              if (matched.isNotEmpty) {
+                _selectedCraft = matched['id'];
+              }
+            }
+            if (result['price_inr'] != null) {
+              final raw = result['price_inr'];
+              _recommendedPrice = (raw is int) ? raw.toDouble() : double.tryParse(raw.toString().replaceAll(RegExp(r'[^0-9.]'), '')) ?? _recommendedPrice;
+            } else if (result['recommended_price'] is String) {
+              final parsed = double.tryParse((result['recommended_price'] as String).replaceAll(RegExp(r'[^0-9.]'), ''));
+              if (parsed != null && parsed > 0) _recommendedPrice = parsed;
+            }
+            if (result['title_en'] is String && (result['title_en'] as String).isNotEmpty) {
+              _titleEn = result['title_en'];
+            }
+            if (result['title_mr'] is String && (result['title_mr'] as String).isNotEmpty) {
+              _titleMr = result['title_mr'];
+            }
+            if (result['title_hi'] is String && (result['title_hi'] as String).isNotEmpty) {
+              _titleHi = result['title_hi'];
+            }
+            if (result['heritage_story'] is String && (result['heritage_story'] as String).isNotEmpty) {
+              _heritageStory = result['heritage_story'];
+            }
+            if (result['desc_en'] is String && (result['desc_en'] as String).isNotEmpty && _transcriptController.text.trim().isEmpty) {
+              _transcriptController.text = result['desc_en'];
+            }
+            _aiDetectedCraft = result['detected_craft'] as String? ?? result['craft_type'] as String?;
+          });
+        }
+      } else {
+        // Fast smart classification based on file path/name
+        final fileName = _pickedImage!.path.split(Platform.pathSeparator).last.toLowerCase();
+        String detected = _selectedCraft;
+        if (fileName.contains('potter') || fileName.contains('clay') || fileName.contains('dhoop') || fileName.contains('diya')) {
+          detected = 'Pottery';
+        } else if (fileName.contains('leather') || fileName.contains('chappal') || fileName.contains('shoe') || fileName.contains('sandal')) {
+          detected = 'Leather';
+        } else if (fileName.contains('wood') || fileName.contains('box') || fileName.contains('carv')) {
+          detected = 'Woodcraft';
+        } else if (fileName.contains('paint') || fileName.contains('warli') || fileName.contains('art')) {
+          detected = 'Paintings';
+        } else if (fileName.contains('dhokra') || fileName.contains('metal') || fileName.contains('brass') || fileName.contains('bull')) {
+          detected = 'Jewellery';
+        } else if (fileName.contains('saree') || fileName.contains('silk') || fileName.contains('cloth') || fileName.contains('textil')) {
+          detected = 'Textiles';
+        }
+
+        final match = _craftCategories.firstWhere(
+          (c) => c['id'] == detected,
+          orElse: () => _craftCategories.first,
+        );
+
+        if (mounted) {
+          setState(() {
+            _selectedCraft = match['id'];
+            _recommendedPrice = match['defaultPrice'];
+            _titleEn = match['defaultEn'];
+            _titleMr = match['defaultMr'];
+            _titleHi = match['defaultHi'];
+            _heritageStory = match['story'];
+            _aiDetectedCraft = match['title'];
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Auto analyze error: $e');
+    } finally {
+      if (mounted) setState(() => _isAnalyzingImage = false);
     }
   }
 
@@ -197,58 +300,44 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _titleMr = preset['title_mr'] ?? match['defaultMr'];
       _titleHi = preset['title_hi'] ?? match['defaultHi'];
       _heritageStory = match['story'];
+      _aiDetectedCraft = preset['title'] ?? match['title'];
     });
   }
 
   Future<void> _toggleListening(String lang) async {
     if (_isListening) {
       // STOP recording
+      setState(() => _isTranscribingVoice = true);
       final path = await _voiceRecorder.stopRecording();
       _recordedAudioPath = path;
 
-      // Call audio transcription API or craft fallback
-      String transcribed = '';
-      if (path != null && path.isNotEmpty) {
-        try {
-          final res = await ApiService().transcribeAudio(
-            audioFile: File(path),
-            language: lang,
-            craftType: _selectedCraft,
-          );
-          if (res != null && res['success'] == true && res['data']?['transcript'] != null) {
-            transcribed = res['data']['transcript'];
-          }
-        } catch (e) {
-          debugPrint('Transcription API note: $e');
-        }
-      }
-
-      if (transcribed.isEmpty) {
-        final match = _craftCategories.firstWhere(
-          (c) => c['id'] == _selectedCraft,
-          orElse: () => _craftCategories.first,
+      try {
+        final aiService = AiService();
+        final res = await aiService.transcribeAndTranslateAudio(
+          audioFile: File(path ?? ''),
+          craftType: _selectedCraft,
+          language: lang,
         );
-        if (lang == 'mr') {
-          transcribed = _selectedCraft == 'Textiles'
-              ? 'ही अस्सल हातमागावर विणलेली पैठणी रेशीम साडी आहे. यावर पारंपारिक मोराची नक्षी असून तयार करण्यास १५ दिवस लागले.'
-              : 'ही पारंपरिक हाताने बनवलेली उत्कृष्ट ${match['marathi']} कलाकृती असून अस्सल नैसर्गिक साहित्यापासून तयार केली आहे.';
-        } else if (lang == 'hi') {
-          transcribed = _selectedCraft == 'Textiles'
-              ? 'यह शुद्ध रेशम की हाथ से बुनी पैठणी साड़ी है। इसमें मोर की पारंपरिक डिजाइन है और इसे बनाने में १५ दिन लगे।'
-              : 'यह हमारे पारंपरिक कारीगरों द्वारा हाथ से बनाया गया प्रामाणिक ${match['hindi']} उत्पाद है।';
-        } else {
-          transcribed = 'This is an authentic handcrafted $_selectedCraft product made with pure natural materials and traditional artisan techniques.';
-        }
-      }
 
-      if (mounted) {
-        setState(() {
-          _transcriptController.text = transcribed;
-        });
+        if (mounted) {
+          setState(() {
+            // AUTOMATICALLY TRANSLATE TO ENGLISH AND DISPLAY IN DESCRIPTION BOX!
+            _transcriptController.text = res['english_description'] ?? '';
+            _voiceOriginalTranscript = res['transcript_original'];
+            if (res['detected_craft'] != null && (res['detected_craft'] as String).isNotEmpty) {
+              _aiDetectedCraft = res['detected_craft'];
+            }
+          });
+        }
+      } catch (e) {
+        debugPrint('Voice translate error: $e');
+      } finally {
+        if (mounted) setState(() => _isTranscribingVoice = false);
       }
     } else {
       // START real recording
       _transcriptController.clear();
+      _voiceOriginalTranscript = null;
       final started = await _voiceRecorder.startRecording();
       if (!started && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -266,6 +355,24 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
   }
 
+  Future<void> _translateCurrentTextToEnglish() async {
+    final text = _transcriptController.text.trim();
+    if (text.isEmpty) return;
+
+    setState(() => _isTranscribingVoice = true);
+    try {
+      final translated = await AiService().translateTextToEnglish(text, craftType: _selectedCraft);
+      if (mounted && translated.isNotEmpty) {
+        setState(() {
+          _voiceOriginalTranscript = text;
+          _transcriptController.text = translated;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _isTranscribingVoice = false);
+    }
+  }
+
   Future<void> _generateAiCatalog(String lang) async {
     setState(() {
       _isAiGenerating = true;
@@ -273,37 +380,114 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
     try {
       final profile = context.read<UserProfileProvider>().profile;
-      final transcript = _transcriptController.text.trim().isNotEmpty
-          ? _transcriptController.text.trim()
-          : 'Handmade traditional $_selectedCraft created by artisan in ${profile.state}';
+      final transcript = _transcriptController.text.trim();
+      final location = profile.state.isNotEmpty ? '${profile.location}, ${profile.state}, India' : 'Maharashtra, India';
+      final aiService = AiService();
 
-      final response = await ApiService().generateCatalog(
-        transcript: transcript,
-        artisanLocation: profile.state.isNotEmpty ? profile.state : 'Maharashtra',
-        language: lang,
-        imageFile: _pickedImage,
-      );
+      late final Map<String, dynamic> aiResult;
 
-      if (response != null && response['success'] == true && response['data'] != null) {
-        final data = response['data'] as Map<String, dynamic>;
-        setState(() {
-          if (data['en']?['title'] != null) _titleEn = data['en']['title'];
-          if (data['mr']?['title'] != null) _titleMr = data['mr']['title'];
-          if (data['hi']?['title'] != null) _titleHi = data['hi']['title'];
-          if (data['heritage_story'] != null) _heritageStory = data['heritage_story'];
-        });
+      // ── Priority 1: Gemini Live AI (if key provided) ──────────
+      if (aiService.isLiveAiAvailable) {
+        if (_pickedImage != null) {
+          aiResult = await aiService.analyzeImageAndGenerateCatalog(
+            imageFile: _pickedImage!,
+            voiceTranscript: transcript.isNotEmpty ? transcript : null,
+            artisanLocation: location,
+          );
+        } else {
+          aiResult = await aiService.generateCatalog(
+            voiceTranscript: transcript.isNotEmpty
+                ? transcript
+                : 'Handmade traditional $_selectedCraft product',
+            craftType: _selectedCraft,
+            location: location,
+          );
+        }
       } else {
-        final craft = _craftCategories.firstWhere((c) => c['id'] == _selectedCraft, orElse: () => _craftCategories.first);
+        // ── Priority 2: Instant On-Device Demo Engine (No slow network delays!) ──
+        aiResult = await aiService.generateCatalog(
+          voiceTranscript: transcript.isNotEmpty
+              ? transcript
+              : 'Handmade traditional $_selectedCraft product',
+          craftType: _selectedCraft,
+          location: location,
+        );
+      }
+
+      // Apply Gemini / AiService result to state
+      if (aiResult.isNotEmpty) {
         setState(() {
-          _titleEn = craft['defaultEn'];
-          _titleMr = craft['defaultMr'];
-          _titleHi = craft['defaultHi'];
-          _recommendedPrice = craft['defaultPrice'];
-          _heritageStory = craft['story'];
+          // Titles
+          if (aiResult['title_en'] is String && (aiResult['title_en'] as String).isNotEmpty) {
+            _titleEn = aiResult['title_en'];
+          }
+          if (aiResult['title_mr'] is String && (aiResult['title_mr'] as String).isNotEmpty) {
+            _titleMr = aiResult['title_mr'];
+          }
+          if (aiResult['title_hi'] is String && (aiResult['title_hi'] as String).isNotEmpty) {
+            _titleHi = aiResult['title_hi'];
+          }
+          // Heritage story
+          if (aiResult['heritage_story'] is String && (aiResult['heritage_story'] as String).isNotEmpty) {
+            _heritageStory = aiResult['heritage_story'];
+          }
+          // English Description
+          if (aiResult['desc_en'] is String && (aiResult['desc_en'] as String).isNotEmpty && _transcriptController.text.trim().isEmpty) {
+            _transcriptController.text = aiResult['desc_en'];
+          }
+          // Price from Vision analysis (most accurate)
+          if (aiResult['price_inr'] != null) {
+            final rawPrice = aiResult['price_inr'];
+            _recommendedPrice = (rawPrice is int)
+                ? rawPrice.toDouble()
+                : double.tryParse(rawPrice.toString().replaceAll(RegExp(r'[^0-9.]'), '')) ?? _recommendedPrice;
+          } else if (aiResult['recommended_price'] is String) {
+            final priceStr = (aiResult['recommended_price'] as String)
+                .replaceAll(RegExp(r'[^0-9.]'), '');
+            final parsed = double.tryParse(priceStr);
+            if (parsed != null && parsed > 0) _recommendedPrice = parsed;
+          }
+          // Update craft category if AI detected it
+          if (aiResult['category'] is String) {
+            final detected = aiResult['category'] as String;
+            final matchedCraft = _craftCategories.firstWhere(
+              (c) => c['id'].toString().toLowerCase() == detected.toLowerCase() ||
+                     detected.toLowerCase().contains(c['id'].toString().toLowerCase()),
+              orElse: () => <String, dynamic>{},
+            );
+            if (matchedCraft.isNotEmpty) {
+              _selectedCraft = matchedCraft['id'];
+            }
+          }
+          // Store detected craft label for toast
+          _aiDetectedCraft = aiResult['detected_craft'] as String?;
         });
+
+        // Show what craft was identified
+        if (_aiDetectedCraft != null && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Craft Detected: $_aiDetectedCraft',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: AppColors.primary,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
       }
     } catch (e) {
-      debugPrint('AI Catalog fetch note: $e');
+      debugPrint('AI Catalog generation note: $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -531,9 +715,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
         Text(
           _t(
             lang,
-            en: 'Place the product in good lighting. AI will automatically enhance and remove backgrounds!',
-            mr: 'उत्पादन चांगल्या प्रकाशात ठेवा. आमचे AI आपोआप बॅकग्राउंड काढून फोटो सुंदर बनवेल!',
-            hi: 'उत्पाद को अच्छी रोशनी में रखें। AI अपने आप बैकग्राउंड हटाकर फोटो को शानदार बनाएगा!',
+            en: 'Place the product in good lighting. The app will automatically optimize and enhance your craft photo!',
+            mr: 'उत्पादन चांगल्या प्रकाशात ठेवा. आमचे ॲप आपोआप बॅकग्राउंड काढून फोटो सुंदर बनवेल!',
+            hi: 'उत्पाद को अच्छी रोशनी में रखें। ऐप अपने आप बैकग्राउंड हटाकर फोटो को शानदार बनाएगा!',
           ),
           style: const TextStyle(fontSize: 13.5, color: AppColors.textSecondary, height: 1.3),
         ),
@@ -582,9 +766,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.auto_awesome, size: 14, color: Colors.white),
+                        Icon(Icons.photo_filter_rounded, size: 14, color: Colors.white),
                         SizedBox(width: 4),
-                        Text('AI Studio', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                        Text('Craft Studio', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
@@ -618,8 +802,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () => context.push('/ai_studio', extra: _pickedImage),
-                          icon: const Icon(Icons.auto_awesome, size: 16),
-                          label: Text(_t(lang, en: 'Studio', mr: 'स्टुडिओ', hi: 'स्टूडियो')),
+                          icon: const Icon(Icons.photo_filter_rounded, size: 16),
+                          label: Text(_t(lang, en: 'Enhance', mr: 'सुधारा', hi: 'सुधारें')),
                           style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
                         ),
                       ),
@@ -677,6 +861,128 @@ class _AddProductScreenState extends State<AddProductScreen> {
               ],
             ),
           ),
+
+        // ── AI Vision Identification Status Card ─────────────────────────────
+        if (_isAnalyzingImage) ...[
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.primaryFixed,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.primary),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _t(
+                      lang,
+                      en: 'Analyzing photo: Identifying craft, material & market price...',
+                      mr: 'फोटो तपासत आहे: हस्तकला, साहित्य व बाजार किंमत ओळखत आहे...',
+                      hi: 'तस्वीर का विश्लेषण हो रहा है: शिल्प, सामग्री व मूल्य की पहचान...',
+                    ),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: AppColors.primary),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ] else if (hasImage) ...[
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.green.shade400),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.check_circle_rounded, color: Colors.green, size: 22),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Craft Detected: ${_aiDetectedCraft ?? _selectedCraft}',
+                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: Colors.green.shade900),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '₹${_recommendedPrice.toInt()}',
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5, color: Colors.green.shade900),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '🏷️ Category: $_selectedCraft • ${_heritageStory.substring(0, _heritageStory.length > 75 ? 75 : _heritageStory.length)}...',
+                  style: TextStyle(fontSize: 11.5, color: Colors.green.shade800),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            _t(lang, en: 'Confirm or Change Craft Category:', mr: 'हस्तकलेचा प्रकार तपासा किंवा बदला:', hi: 'हस्तशिल्प श्रेणी की पुष्टि करें या बदलें:'),
+            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: _craftCategories.map((c) {
+              final isSel = _selectedCraft == c['id'];
+              return ChoiceChip(
+                label: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(c['icon'], style: const TextStyle(fontSize: 14)),
+                    const SizedBox(width: 4),
+                    Text(_t(lang, en: c['title'], mr: c['marathi'], hi: c['hindi'])),
+                  ],
+                ),
+                selected: isSel,
+                selectedColor: AppColors.primaryFixed,
+                labelStyle: TextStyle(
+                  color: isSel ? AppColors.primary : AppColors.textPrimary,
+                  fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 12,
+                ),
+                onSelected: (val) {
+                  if (val) {
+                    setState(() {
+                      _selectedCraft = c['id'];
+                      _recommendedPrice = c['defaultPrice'];
+                      _titleEn = c['defaultEn'];
+                      _titleMr = c['defaultMr'];
+                      _titleHi = c['defaultHi'];
+                      _heritageStory = c['story'];
+                      _aiDetectedCraft = c['title'];
+                    });
+                  }
+                },
+              );
+            }).toList(),
+          ),
+        ],
 
         const SizedBox(height: 20),
 
@@ -821,7 +1127,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
           }).toList(),
         ),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
 
         // Voice Section
         Container(
@@ -921,25 +1227,132 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   ),
                 ),
               ],
-              const SizedBox(height: 14),
 
-              // Transcript Field
+              // Voice Translating Status Indicator
+              if (_isTranscribingVoice) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryFixed,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)),
+                      const SizedBox(width: 10),
+                      Text(
+                        _t(lang,
+                          en: 'Converting voice narration to catalog description...',
+                          mr: 'आवाजाचे इंग्रजीत कॅटलॉग विवरण तयार करत आहे...',
+                          hi: 'आवाज से अंग्रेजी में कैटलॉग विवरण तैयार कर रहा है...'),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primary),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 16),
+
+              // Description Box Header with English Translation indicator
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _t(lang,
+                      en: 'Product Description (English):',
+                      mr: 'उत्पादन वर्णन (इंग्रजी भाषांतर):',
+                      hi: 'उत्पाद विवरण (अंग्रेजी अनुवाद):'),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
+                  ),
+                  TextButton.icon(
+                    onPressed: _isTranscribingVoice ? null : _translateCurrentTextToEnglish,
+                    icon: const Icon(Icons.translate_rounded, size: 14, color: AppColors.primary),
+                    label: Text(
+                      _t(lang, en: 'Translate to English', mr: 'इंग्रजीत भाषांतर करा', hi: 'अंग्रेजी में अनुवाद करें'),
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
+                    ),
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+
+              // Transcript Field (English description)
               TextField(
                 controller: _transcriptController,
-                maxLines: 3,
+                maxLines: 4,
+                style: const TextStyle(fontSize: 14, height: 1.4),
                 decoration: InputDecoration(
                   hintText: _t(
                     lang,
-                    en: 'Or type description here...',
-                    mr: 'किंवा येथे माहिती लिहा...',
-                    hi: 'या यहां विवरण लिखें...',
+                    en: 'Speak in Marathi/Hindi, your words will be automatically translated to English here...',
+                    mr: 'आपल्या भाषेत बोला, तुमचे शब्द आपोआप इंग्रजीत भाषांतर करून येथे येतील...',
+                    hi: 'अपनी भाषा में बोलें, आपके शब्द स्वतः अंग्रेजी में अनुवाद होकर यहाँ आएँगे...',
                   ),
                   filled: true,
                   fillColor: AppColors.background,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                  contentPadding: const EdgeInsets.all(12),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppColors.outlineVariant)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppColors.primary, width: 2)),
+                  contentPadding: const EdgeInsets.all(14),
                 ),
               ),
+              const SizedBox(height: 6),
+
+              // Translation confirmation chip
+              Row(
+                children: [
+                  const Icon(Icons.verified_rounded, size: 14, color: AppColors.success),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      _t(
+                        lang,
+                        en: 'Auto-translated to English so buyers across India & abroad can discover your craft.',
+                        mr: 'ग्राहकांसाठी आपोआप इंग्रजीत अनुवादित केले जेणेकरून उत्पादन सहज विकले जाईल.',
+                        hi: 'खरीदारों के लिए स्वतः अंग्रेजी में अनुवादित ताकि उत्पाद आसानी से बिक सके।',
+                      ),
+                      style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    ),
+                  ),
+                ],
+              ),
+
+              // Display original voice speech if recorded
+              if (_voiceOriginalTranscript != null && _voiceOriginalTranscript!.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.outlineVariant),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.record_voice_over_rounded, size: 14, color: AppColors.textLight),
+                          const SizedBox(width: 6),
+                          Text(
+                            _t(lang, en: 'Original Voice Spoken:', mr: 'मूळ बोललेला आवाज:', hi: 'मूल बोली गई आवाज:'),
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textLight),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _voiceOriginalTranscript!,
+                        style: const TextStyle(fontSize: 12, color: AppColors.textPrimary, fontStyle: FontStyle.italic),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -963,21 +1376,53 @@ class _AddProductScreenState extends State<AddProductScreen> {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 24),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  _t(
-                    lang,
-                    en: 'AI has generated your tri-lingual catalog and fair pricing!',
-                    mr: 'AI ने आपल्या उत्पादनाचा ३ भाषांमधील कॅटलॉग व योग्य किंमत तयार केली आहे!',
-                    hi: 'AI ने आपके उत्पाद का ३ भाषाओं में कैटलॉग एवं उचित मूल्य तैयार किया है!',
+              Row(
+                children: [
+                  const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 24),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _t(
+                        lang,
+                        en: 'Tri-lingual catalog & fair market pricing ready!',
+                        mr: 'उत्पादनाचा ३ भाषांमधील कॅटलॉग व योग्य किंमत तयार झाली आहे!',
+                        hi: 'उत्पाद का ३ भाषाओं में कैटलॉग एवं उचित मूल्य तैयार हुआ!',
+                      ),
+                      style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
                   ),
-                  style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 13),
-                ),
+                ],
               ),
+              if (_aiDetectedCraft != null) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.check_circle_outline_rounded, size: 14, color: AppColors.primary),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          'Craft identified: $_aiDetectedCraft',
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -998,8 +1443,55 @@ class _AddProductScreenState extends State<AddProductScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17.5, color: AppColors.textPrimary)),
-              const SizedBox(height: 6),
-              Text(_heritageStory, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4)),
+              const SizedBox(height: 10),
+
+              // Artisan Voice Description (English)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryFixed.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.description_rounded, size: 14, color: AppColors.primary),
+                        const SizedBox(width: 6),
+                        Text(
+                          _t(lang, en: 'Product Description (Artisan Voice)', mr: 'उत्पादन वर्णन (कारागिराचा आवाज)', hi: 'उत्पाद विवरण (कारीगर की आवाज)'),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5, color: AppColors.primary),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _transcriptController.text.isNotEmpty
+                          ? _transcriptController.text
+                          : 'Authentic handcrafted $_selectedCraft created with traditional artisan techniques.',
+                      style: const TextStyle(fontSize: 13, color: AppColors.textPrimary, height: 1.35),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // Cultural Heritage Narrative
+              Row(
+                children: [
+                  const Icon(Icons.history_edu_rounded, size: 14, color: AppColors.textLight),
+                  const SizedBox(width: 6),
+                  Text(
+                    _t(lang, en: 'Cultural Heritage Story:', mr: 'सांस्कृतिक वारसा कथा:', hi: 'सांस्कृतिक विरासत कथा:'),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5, color: AppColors.textLight),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(_heritageStory, style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary, height: 1.4)),
               const Divider(height: 24),
 
               // Recommended Price
@@ -1010,7 +1502,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _t(lang, en: 'AI Recommended Price', mr: 'शिफारस केलेली किंमत', hi: 'सुझाई गई कीमत'),
+                        _t(lang, en: 'Fair Market Value', mr: 'योग्य बाजार किंमत', hi: 'उचित बाजार मूल्य'),
                         style: const TextStyle(fontSize: 12, color: AppColors.textLight, fontWeight: FontWeight.bold),
                       ),
                       Text(
@@ -1037,7 +1529,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
         // 3 Special Feature Links (Multilingual Catalog, Heritage Story, Smart Pricing)
         Text(
-          _t(lang, en: 'Explore AI Enhancements:', mr: 'AI वैशिष्ट्ये तपासा:', hi: 'AI विशेषताएं देखें:'),
+          _t(lang, en: 'Craft Tools & Services:', mr: 'शिल्प साधने व वैशिष्ट्ये:', hi: 'शिल्प सुविधाएं व विशेषताएं:'),
           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppColors.textPrimary),
         ),
         const SizedBox(height: 10),
@@ -1072,7 +1564,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
           icon: Icons.calculate_rounded,
           iconBg: AppColors.secondaryFixed,
           iconColor: AppColors.secondary,
-          title: _t(lang, en: 'AI Smart Pricing Engine', mr: 'AI अचूक किंमत निर्धारण व चलन', hi: 'AI सटीक मूल्य निर्धारण व मुद्रा'),
+          title: _t(lang, en: 'Fair Pricing & Currency Breakdown', mr: 'अचूक किंमत निर्धारण व चलन', hi: 'सटीक मूल्य निर्धारण व मुद्रा'),
           subtitle: _t(lang, en: 'Cost breakdown & 0% commission guarantee', mr: 'खर्च विश्लेषण आणि ०% कमिशन हमी', hi: 'लागत विश्लेषण और ०% कमीशन गारंटी'),
           onTap: () => context.push('/smart_pricing', extra: currentProduct),
         ),
@@ -1172,7 +1664,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       _currentStep == 0
                           ? _t(lang, en: 'Next: Details 🎙️', mr: 'पुढे: माहिती सांगा 🎙️', hi: 'आगे: विवरण बताएं 🎙️')
                           : (_currentStep == 1
-                              ? _t(lang, en: 'Generate AI Catalog ✨', mr: 'AI कॅटलॉग तयार करा ✨', hi: 'AI कैटलॉग तैयार करें ✨')
+                              ? _t(lang, en: 'Create Product Catalog', mr: 'उत्पादन कॅटलॉग तयार करा', hi: 'उत्पाद कैटलॉग तैयार करें')
                               : _t(lang, en: 'Publish to ShilpSetu 🚀', mr: 'शिल्पसेतूवर प्रकाशित करा 🚀', hi: 'शिल्पसेतु पर प्रकाशित करें 🚀')),
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                     ),

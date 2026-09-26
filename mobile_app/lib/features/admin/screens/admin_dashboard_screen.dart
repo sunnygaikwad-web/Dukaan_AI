@@ -55,7 +55,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Dukaan Command Center', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                Text('Platform Administration & AI Engine', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                Text('Platform Administration & Operations', style: TextStyle(color: Colors.grey, fontSize: 11)),
               ],
             ),
           ],
@@ -116,9 +116,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.auto_awesome, color: AppColors.primary, size: 20),
+                          Icon(Icons.tune_rounded, color: AppColors.primary, size: 20),
                           SizedBox(width: 8),
-                          Text('AI Engine Configuration', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                          Text('Marketplace Services Configuration', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                         ],
                       ),
                       Container(

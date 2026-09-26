@@ -4,11 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shilpsetu_ai/core/theme/app_theme.dart';
-import 'package:shilpsetu_ai/core/constants/app_localizations.dart';
-import 'package:shilpsetu_ai/core/constants/app_craft_images.dart';
 import 'package:shilpsetu_ai/core/providers/user_profile_provider.dart';
 import 'package:shilpsetu_ai/core/services/voice_recorder_service.dart';
-import 'package:shilpsetu_ai/services/api_service.dart';
+import 'package:shilpsetu_ai/core/services/ai_service.dart';
 
 class VoiceCatalogerScreen extends StatefulWidget {
   final File imageFile;
@@ -160,39 +158,36 @@ class _VoiceCatalogerScreenState extends State<VoiceCatalogerScreen>
       final path = await _recorderService.stopRecording();
       _recordedAudioPath = path;
 
-      // Attempt AI audio transcription
-      String transcribedText = '';
-      if (path != null && path.isNotEmpty) {
-        try {
-          final res = await ApiService().transcribeAudio(
-            audioFile: File(path),
-            language: lang,
-            craftType: _selectedCraft,
-          );
-          if (res != null && res['success'] == true && res['data']?['transcript'] != null) {
-            transcribedText = res['data']['transcript'];
-          }
-        } catch (e) {
-          debugPrint('Backend transcription note: $e');
-        }
-      }
-
-      // If backend transcription not active, fallback to selected craft speech
-      if (transcribedText.isEmpty) {
-        final craft = _quickCrafts.firstWhere(
-          (c) => c['id'] == _selectedCraft,
-          orElse: () => _quickCrafts.first,
+      try {
+        final aiService = AiService();
+        final res = await aiService.transcribeAndTranslateAudio(
+          audioFile: File(path ?? ''),
+          craftType: _selectedCraft,
+          language: lang,
         );
-        transcribedText = lang == 'mr'
-            ? craft['sample_mr']
-            : (lang == 'hi' ? craft['sample_hi'] : craft['sample_en']);
-      }
 
-      if (mounted) {
-        setState(() {
-          _isTranscribing = false;
-          _transcriptController.text = transcribedText;
-        });
+        if (mounted) {
+          setState(() {
+            _isTranscribing = false;
+            // AUTOMATICALLY TRANSLATE TO ENGLISH DESCRIPTION!
+            _transcriptController.text = res['english_description'] ?? '';
+            if (res['detected_craft'] != null && (res['detected_craft'] as String).isNotEmpty) {
+              final detected = (res['detected_craft'] as String).toLowerCase();
+              final matched = _quickCrafts.firstWhere(
+                (c) => c['id'].toString().toLowerCase() == detected ||
+                       c['id'].toString().toLowerCase().contains(detected) ||
+                       detected.contains(c['id'].toString().toLowerCase()),
+                orElse: () => <String, dynamic>{},
+              );
+              if (matched.isNotEmpty) {
+                _selectedCraft = matched['id'];
+              }
+            }
+          });
+        }
+      } catch (e) {
+        debugPrint('Voice cataloger transcription note: $e');
+        if (mounted) setState(() => _isTranscribing = false);
       }
     } else {
       // START recording from real microphone
@@ -271,9 +266,9 @@ class _VoiceCatalogerScreenState extends State<VoiceCatalogerScreen>
               Text(
                 _t(
                   lang,
-                  en: 'Speak naturally in Marathi, Hindi, or English. AI will listen, transcribe, and craft a 360° digital catalog.',
-                  mr: 'मराठी, हिंदी किंवा इंग्रजीत बोला. AI आपले बोलणे ऐकून ३६०° डिजिटल कॅटलॉग तयार करेल.',
-                  hi: 'मराठी, हिंदी या अंग्रेजी में बोलें। AI सुनकर आपका ३६०° डिजिटल कैटलॉग तैयार करेगा।',
+                  en: 'Speak naturally in Marathi, Hindi, or English. We will transcribe your words into a 360° digital catalog.',
+                  mr: 'मराठी, हिंदी किंवा इंग्रजीत बोला. आपले बोलणे ऐकून ३६०° डिजिटल कॅटलॉग तयार केले जाईल.',
+                  hi: 'मराठी, हिंदी या अंग्रेजी में बोलें। आपकी बात सुनकर ३६०° डिजिटल कैटलॉग तैयार किया जाएगा।',
                 ),
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.35),
@@ -452,9 +447,9 @@ class _VoiceCatalogerScreenState extends State<VoiceCatalogerScreen>
                       const SizedBox(height: 12),
                       Text(
                         _t(lang,
-                            en: 'AI is transcribing your speech...',
-                            mr: 'AI आपल्या आवाजाचे शब्दांत रूपांतर करत आहे...',
-                            hi: 'AI आपकी आवाज को लिख रहा है...'),
+                            en: 'Transcribing your speech...',
+                            mr: 'आपल्या आवाजाचे शब्दांत रूपांतर करत आहे...',
+                            hi: 'आपकी आवाज को लिख रहा है...'),
                         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                     ],
@@ -554,7 +549,7 @@ class _VoiceCatalogerScreenState extends State<VoiceCatalogerScreen>
                       'craft': _selectedCraft,
                     });
                   },
-                  icon: const Icon(Icons.auto_awesome_rounded),
+                  icon: const Icon(Icons.translate_rounded),
                   label: Text(
                     _t(lang,
                         en: 'Generate Trilingual Catalog ➔',

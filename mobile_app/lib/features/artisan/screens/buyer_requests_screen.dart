@@ -1,8 +1,9 @@
-// lib/features/artisan/screens/buyer_requests_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/buyer_request_provider.dart';
+import '../../../core/providers/chat_provider.dart';
 
 class BuyerRequestsScreen extends StatefulWidget {
   const BuyerRequestsScreen({super.key});
@@ -39,6 +40,14 @@ class _BuyerRequestsScreenState extends State<BuyerRequestsScreen> {
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Buyer Chats',
+            icon: const Icon(Icons.forum_outlined, color: AppColors.primary),
+            onPressed: () => context.push('/chat_list'),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Column(
         children: [
@@ -173,6 +182,28 @@ class _BuyerRequestsScreenState extends State<BuyerRequestsScreen> {
             const SizedBox(height: 4),
             Text('${item.buyerOrg} • ${item.buyerLocation}', style: TextStyle(color: AppColors.textLight)),
             const SizedBox(height: 20),
+            ListTile(
+              leading: CircleAvatar(
+                backgroundColor: AppColors.primaryFixed,
+                child: const Icon(Icons.forum_rounded, color: AppColors.primary),
+              ),
+              title: const Text('In-App Direct Chat', style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text('Message ${item.buyerOrg} directly in ShilpSetu'),
+              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+              onTap: () {
+                Navigator.pop(ctx);
+                final chatProvider = context.read<ChatProvider>();
+                final thread = chatProvider.getOrCreateThread(
+                  artisanName: 'Om Gaikwad',
+                  artisanCraft: item.productTitle,
+                  buyerName: item.buyerName,
+                  buyerOrg: item.buyerOrg,
+                  productTitle: item.productTitle,
+                  productPrice: '₹${item.productPrice} x ${item.quantity}',
+                );
+                context.push('/chat_conversation', extra: thread.id);
+              },
+            ),
             ListTile(
               leading: const CircleAvatar(backgroundColor: AppColors.successContainer, child: Icon(Icons.chat, color: AppColors.success)),
               title: const Text('WhatsApp Chat'),

@@ -9,6 +9,7 @@ import '../../../core/providers/buyer_request_provider.dart';
 import '../../../core/constants/app_craft_images.dart';
 import '../../../models/product_model.dart';
 import '../../buyers/widgets/buyer_leads_sheet.dart';
+import '../../../core/providers/chat_provider.dart';
 import '../../../main.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -50,10 +51,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final profileProvider = context.watch<UserProfileProvider>();
     final productProvider = context.watch<ProductProvider>();
     final requestProvider = context.watch<BuyerRequestProvider>();
+    final chatProvider = context.watch<ChatProvider>();
     final profile = profileProvider.profile;
     final lang = profileProvider.selectedLanguage;
     final products = productProvider.products;
     final pendingRequests = requestProvider.requests.where((r) => r.status == 'pending').toList();
+    final unreadChatCount = chatProvider.totalUnreadCount;
 
     final initials = profile.name.trim().isNotEmpty
         ? profile.name
@@ -95,30 +98,129 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      AppLocalizations.tr('dukaan_title', lang),
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 17,
-                          ),
-                    ),
-                    Text(
-                      AppLocalizations.tr('dukaan_subtitle', lang),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textLight,
-                            fontSize: 12,
-                          ),
-                    ),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        AppLocalizations.tr('dukaan_title', lang),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16,
+                            ),
+                      ),
+                      Text(
+                        AppLocalizations.tr('dukaan_subtitle', lang),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.textLight,
+                              fontSize: 11,
+                            ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
             actions: [
+              // Direct Buyer Chat Messages with Unread Badge
+              GestureDetector(
+                onTap: () => context.push('/chat_list'),
+                child: Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerLowest,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.outlineVariant),
+                    boxShadow: const [
+                      BoxShadow(color: AppColors.cardShadow, blurRadius: 4, offset: Offset(0, 1)),
+                    ],
+                  ),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      const Icon(Icons.forum_outlined, size: 20, color: AppColors.textPrimary),
+                      if (unreadChatCount > 0)
+                        Positioned(
+                          right: -3,
+                          top: -3,
+                          child: Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF6366F1),
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                            child: Text(
+                              '$unreadChatCount',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Notification Bell (Direct Buyer Request Alert)
+              GestureDetector(
+                onTap: () {
+                  requestProvider.clearLatestAlert();
+                  context.push('/buyer_requests');
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerLowest,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.outlineVariant),
+                    boxShadow: const [
+                      BoxShadow(color: AppColors.cardShadow, blurRadius: 4, offset: Offset(0, 1)),
+                    ],
+                  ),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      const Icon(Icons.notifications_outlined, size: 20, color: AppColors.textPrimary),
+                      if (pendingRequests.isNotEmpty)
+                        Positioned(
+                          right: -3,
+                          top: -3,
+                          child: Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: const BoxDecoration(
+                              color: AppColors.error,
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                            child: Text(
+                              '${pendingRequests.length}',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+
               // Language Switcher Button
               GestureDetector(
                 onTap: () => _showLanguageSheet(context),
@@ -195,6 +297,77 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Live Buyer Inquiry Alert Banner (if any)
+                  if (requestProvider.latestAlert != null) ...[
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 14),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF3C7),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFF59E0B), width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFF59E0B),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.notifications_active, color: Colors.white, size: 18),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'नवीन घाऊक मागणी! / New Bulk Order Request!',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: Color(0xFF92400E),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  requestProvider.latestAlert!,
+                                  style: const TextStyle(fontSize: 12, color: Color(0xFF78350F)),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          ElevatedButton(
+                            onPressed: () {
+                              requestProvider.clearLatestAlert();
+                              context.push('/buyer_requests');
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFD97706),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              visualDensity: VisualDensity.compact,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            child: const Text('View', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
                   // 1. Greeting
                   _buildGreetingHeader(context, profile.name, lang),
 
@@ -210,15 +383,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 18),
 
-                  // 4. Quick Actions Grid (My Products, Find Buyers, My Earnings, Digital Mela)
-                  _buildQuickActionsGrid(context, lang, products.length),
+                  // 4. Quick Actions Grid (My Products, Find Buyers, My Earnings, Digital Mela, Buyer Chat)
+                  _buildQuickActionsGrid(
+                    context,
+                    lang,
+                    products.length,
+                    unreadChatCount,
+                    chatProvider.threads.length,
+                  ),
 
-                  const SizedBox(height: 18),
 
-                  // 5. AI Tip Card
-                  _buildAiTipCard(context, lang),
-
-                  const SizedBox(height: 18),
 
                   // 6. Today's Summary (3 Clean Badges)
                   _buildSummaryStats(context, lang, products.length, pendingRequests.length),
@@ -353,7 +527,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ─── Quick Actions Grid ───────────────────────────────────────────────────
-  Widget _buildQuickActionsGrid(BuildContext context, String lang, int productCount) {
+  Widget _buildQuickActionsGrid(
+    BuildContext context,
+    String lang,
+    int productCount,
+    int unreadChatCount,
+    int threadCount,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -417,6 +597,96 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+        const SizedBox(height: 12),
+        // Direct In-App Buyer Communication Card
+        InkWell(
+          onTap: () => context.push('/chat_list'),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1E1B4B), Color(0xFF312E81)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF1E1B4B).withValues(alpha: 0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.forum_rounded, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            _t(lang, en: 'Buyer Chats & Inquiries', mr: 'खरेदीदार संवाद व चॅट', hi: 'खरीदार चैट और पूछताछ'),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          if (unreadChatCount > 0) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '$unreadChatCount NEW',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _t(
+                          lang,
+                          en: '$threadCount active buyer discussions • Direct B2B message',
+                          mr: '$threadCount सक्रिय खरेदीदार चर्चा • थेट संवाद',
+                          hi: '$threadCount सक्रिय खरीदार चर्चा • सीधा व्यापार संवाद',
+                        ),
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: 11.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 14),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -469,37 +739,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ─── AI Tip Card ──────────────────────────────────────────────────────────
-  Widget _buildAiTipCard(BuildContext context, String lang) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.outline.withValues(alpha: 0.7)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.auto_awesome, size: 16, color: AppColors.primary),
-              const SizedBox(width: 6),
-              Text(
-                AppLocalizations.tr('ai_tip_title', lang),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.primary),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            AppLocalizations.tr('ai_tip_body', lang),
-            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   // ─── 1. Hero Action Card ───────────────────────────────────────────────────
   Widget _buildHeroActionCard(BuildContext context, String artisanName, String lang) {
@@ -544,9 +784,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(
                       _t(
                         lang,
-                        en: 'List your craft online in 1 minute with AI',
-                        mr: 'फोटो काढा किंवा बोला, AI त्वरित विक्री तयार करेल',
-                        hi: 'फोटो लें या बोलें, AI तुरंत आपकी बिक्री तैयार करेगा',
+                        en: 'List your craft online in 1 minute',
+                        mr: 'फोटो काढा किंवा बोला, त्वरित उत्पादन सूची तयार करा',
+                        hi: 'फोटो लें या बोलें, तुरंत उत्पाद सूची तैयार करें',
                       ),
                       style: const TextStyle(
                         color: AppColors.primaryFixed,
@@ -563,7 +803,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: Colors.white.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.auto_awesome, color: AppColors.primaryFixed, size: 28),
+                child: const Icon(Icons.storefront_rounded, color: AppColors.primaryFixed, size: 28),
               ),
             ],
           ),
@@ -994,80 +1234,84 @@ class _HomeScreenState extends State<HomeScreen> {
                   ? p.enhancedImageUrl
                   : ((p.originalImageUrl != null && p.originalImageUrl!.isNotEmpty) ? p.originalImageUrl : null);
 
-              return Container(
-                width: 140,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerLowest,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.outlineVariant),
-                  boxShadow: const [
-                    BoxShadow(color: AppColors.cardShadow, blurRadius: 6, offset: Offset(0, 2)),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Product Image
-                    ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                      child: SizedBox(
-                        height: 105,
-                        width: double.infinity,
-                        child: AppCraftImages.buildCraftImage(
-                          imageUrl: displayImage,
-                          categoryOrTitle: p.metadata.craftType,
-                          fit: BoxFit.cover,
+              return InkWell(
+                onTap: () => context.push('/multilingual_catalog', extra: p),
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  width: 140,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.outlineVariant),
+                    boxShadow: const [
+                      BoxShadow(color: AppColors.cardShadow, blurRadius: 6, offset: Offset(0, 2)),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Product Image
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+                        child: SizedBox(
+                          height: 105,
+                          width: double.infinity,
+                          child: AppCraftImages.buildCraftImage(
+                            imageUrl: displayImage,
+                            categoryOrTitle: p.metadata.craftType,
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                price,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 13,
-                                  color: AppColors.primary,
-                                ),
+                      Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
+                                color: AppColors.textPrimary,
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: AppColors.successContainer,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  _t(lang, en: 'Active', mr: 'सुरू', hi: 'लाइव'),
+                            ),
+                            const SizedBox(height: 2),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  price,
                                   style: const TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.success,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 13,
+                                    color: AppColors.primary,
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.successContainer,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    _t(lang, en: 'Active', mr: 'सुरू', hi: 'लाइव'),
+                                    style: const TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.success,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },
@@ -1219,7 +1463,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // 3. Upcoming Workshop
             _buildSchemeCard(
-              title: 'AI Digital Photography Masterclass',
+              title: 'Digital Craft Photography Masterclass',
               benefit: 'Free virtual workshop on lighting & mobile craft photos',
               eligibility: 'All registered ShilpSetu artisans • This Saturday 4 PM',
               tag: 'Skill Training',

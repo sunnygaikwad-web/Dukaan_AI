@@ -204,7 +204,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
               height: 150,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.08),
+                color: Colors.white.withValues(alpha: 0.08),
               ),
             ),
           ),
@@ -216,7 +216,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
               height: 100,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.06),
+                color: Colors.white.withValues(alpha: 0.06),
               ),
             ),
           ),
@@ -234,7 +234,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                     borderRadius: BorderRadius.circular(26),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withValues(alpha: 0.2),
                         blurRadius: 24,
                         offset: const Offset(0, 8),
                       ),
@@ -262,7 +262,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                 Text(
                   'Your AI-Powered Business Manager',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.85),
+                    color: Colors.white.withValues(alpha: 0.85),
                     fontSize: 13,
                     fontWeight: FontWeight.w400,
                   ),
@@ -289,7 +289,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
         border: Border.all(color: AppColors.divider),
         boxShadow: [
           BoxShadow(
-            color: iconBg.withOpacity(0.06),
+            color: iconBg.withValues(alpha: 0.06),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -301,7 +301,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: iconBg.withOpacity(0.15),
+              color: iconBg.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(icon, color: iconBg, size: 24),

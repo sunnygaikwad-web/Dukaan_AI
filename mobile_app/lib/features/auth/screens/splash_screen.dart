@@ -217,7 +217,7 @@ class _SplashScreenState extends State<SplashScreen>
               child: Column(
                 children: [
                   Text(
-                    'Dukaan AI Engine',
+                    'Empowering Indian Artisans',
                     style: TextStyle(
                       fontFamily: 'Poppins',
                       color: AppColors.textLight,

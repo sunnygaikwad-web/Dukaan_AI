@@ -74,13 +74,13 @@ class _PublishSuccessScreenState extends State<PublishSuccessScreen>
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                        color: Colors.black.withOpacity(0.06), blurRadius: 12)
+                        color: Colors.black.withValues(alpha: 0.06), blurRadius: 12)
                   ],
                 ),
                 child: Column(
                   children: [
                     _DetailRow(
-                        label: 'Product ID', value: '#PAITHANI_001'),
+                        label: 'Product ID', value: '#CRAFT_${DateTime.now().millisecondsSinceEpoch % 10000}'),
                     const Divider(height: 20),
                     _DetailRow(label: 'Status', value: '✅ Published'),
                     const Divider(height: 20),
@@ -91,15 +91,20 @@ class _PublishSuccessScreenState extends State<PublishSuccessScreen>
                             .toString()
                             .split(' ')[0]),
                     const Divider(height: 20),
-                    _DetailRow(label: 'AI Buyer Matches', value: '4 Found'),
+                    _DetailRow(label: 'AI Buyer Matches', value: '4 Ready'),
                   ],
                 ),
               ),
               const SizedBox(height: 32),
               ElevatedButton.icon(
-                onPressed: () => context.go('/home'),
-                icon: const Icon(Icons.home),
-                label: const Text('Back to Home'),
+                onPressed: () => context.go('/my_products'),
+                icon: const Icon(Icons.inventory_2_rounded),
+                label: const Text('View in My Products'),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 52),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                ),
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
@@ -121,11 +126,23 @@ class _PublishSuccessScreenState extends State<PublishSuccessScreen>
                 ),
               ),
               const SizedBox(height: 12),
-              TextButton.icon(
-                onPressed: () => context.push('/buyer_matching'),
-                icon: const Icon(Icons.handshake_outlined),
-                label: const Text(
-                    'View AI Buyer Matches', style: TextStyle(fontSize: 16)),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton.icon(
+                      onPressed: () => context.push('/buyer_matching'),
+                      icon: const Icon(Icons.handshake_outlined),
+                      label: const Text('Matching Buyers', style: TextStyle(fontSize: 15)),
+                    ),
+                  ),
+                  Expanded(
+                    child: TextButton.icon(
+                      onPressed: () => context.go('/home'),
+                      icon: const Icon(Icons.home_outlined),
+                      label: const Text('Back to Home', style: TextStyle(fontSize: 15)),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

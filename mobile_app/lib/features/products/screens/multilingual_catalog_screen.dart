@@ -28,7 +28,9 @@ class _MultilingualCatalogScreenState extends State<MultilingualCatalogScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final appLang = context.watch<UserProfileProvider>().selectedLanguage;
+    final userProfile = context.watch<UserProfileProvider>();
+    final appLang = userProfile.selectedLanguage;
+    final isBuyer = userProfile.currentRole == 'buyer';
     final p = widget.product ?? ProductModel.demoProducts.first;
 
     final catalogContent = p.catalog[_activeLang] ??
@@ -66,7 +68,7 @@ class _MultilingualCatalogScreenState extends State<MultilingualCatalogScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.auto_awesome, size: 14, color: AppColors.secondary),
+                const Icon(Icons.translate_rounded, size: 14, color: AppColors.secondary),
                 const SizedBox(width: 4),
                 Text(
                   AppLocalizations.tr('ai_translated_tag', appLang),
@@ -270,29 +272,31 @@ class _MultilingualCatalogScreenState extends State<MultilingualCatalogScreen> {
 
               const SizedBox(height: 24),
 
-              // ── Continue to Heritage Story Button ──────────────────
-              ElevatedButton(
-                onPressed: () {
-                  context.push('/heritage_story', extra: p);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  elevation: 3,
+              // ── Continue to Heritage Story Button (Hidden in Buyer Login) ──
+              if (!isBuyer) ...[
+                ElevatedButton(
+                  onPressed: () {
+                    context.push('/heritage_story', extra: p);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 3,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        AppLocalizations.tr('continue_heritage', appLang),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      AppLocalizations.tr('continue_heritage', appLang),
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 24),
+              ],
             ],
           ),
         ),

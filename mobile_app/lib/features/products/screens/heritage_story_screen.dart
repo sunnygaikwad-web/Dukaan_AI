@@ -290,7 +290,7 @@ class _HeritageStoryScreenState extends State<HeritageStoryScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.auto_awesome, color: AppColors.secondary, size: 20),
+                        const Icon(Icons.history_edu_rounded, color: AppColors.secondary, size: 20),
                         const SizedBox(width: 8),
                         Text(
                           AppLocalizations.tr('artisans_journey_title', appLang),

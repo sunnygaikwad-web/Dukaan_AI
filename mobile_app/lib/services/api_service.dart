@@ -23,12 +23,12 @@ class ApiService {
       final response = await http.get(
         Uri.parse('$_baseUrl$endpoint'),
         headers: _headers,
-      ).timeout(const Duration(seconds: 15));
+      ).timeout(const Duration(milliseconds: 2500));
       if (response.statusCode == 200) {
         return json.decode(utf8.decode(response.bodyBytes));
       }
     } catch (e) {
-      debugPrint('API GET error: $e');
+      debugPrint('API GET note: $e');
     }
     return null;
   }
@@ -40,12 +40,12 @@ class ApiService {
         Uri.parse('$_baseUrl$endpoint'),
         headers: _headers,
         body: json.encode(body),
-      ).timeout(const Duration(seconds: 30));
+      ).timeout(const Duration(milliseconds: 3000));
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(utf8.decode(response.bodyBytes));
       }
     } catch (e) {
-      debugPrint('API POST error: $e');
+      debugPrint('API POST note: $e');
     }
     return null;
   }
@@ -55,13 +55,13 @@ class ApiService {
     try {
       var request = http.MultipartRequest('POST', Uri.parse('$_baseUrl$endpoint'));
       request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
-      var streamedResponse = await request.send().timeout(const Duration(seconds: 60));
+      var streamedResponse = await request.send().timeout(const Duration(milliseconds: 5000));
       var response = await http.Response.fromStream(streamedResponse);
       if (response.statusCode == 200) {
         return json.decode(utf8.decode(response.bodyBytes));
       }
     } catch (e) {
-      debugPrint('API Upload error: $e');
+      debugPrint('API Upload note: $e');
     }
     return null;
   }
@@ -79,13 +79,13 @@ class ApiService {
       if (craftType != null) {
         request.fields['craft_type'] = craftType;
       }
-      var streamedResponse = await request.send().timeout(const Duration(seconds: 45));
+      var streamedResponse = await request.send().timeout(const Duration(milliseconds: 3000));
       var response = await http.Response.fromStream(streamedResponse);
       if (response.statusCode == 200) {
         return json.decode(utf8.decode(response.bodyBytes));
       }
     } catch (e) {
-      debugPrint('Audio transcription API error: $e');
+      debugPrint('Audio transcription API note: $e');
     }
     return null;
   }

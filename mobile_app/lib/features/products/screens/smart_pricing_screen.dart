@@ -108,7 +108,7 @@ class _SmartPricingScreenState extends State<SmartPricingScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.auto_awesome, size: 14, color: AppColors.primaryDark),
+                              const Icon(Icons.calculate_outlined, size: 14, color: AppColors.primaryDark),
                               const SizedBox(width: 4),
                               Text(
                                 AppLocalizations.tr('fair_pricing_engine_tag', appLang),
@@ -239,7 +239,7 @@ class _SmartPricingScreenState extends State<SmartPricingScreen> {
 
                     // Item 3: Heritage & GI Value
                     _buildBreakdownItem(
-                      icon: Icons.stars_rounded,
+                      icon: Icons.verified_rounded,
                       title: AppLocalizations.tr('heritage_gi_cost', appLang),
                       subtitle: AppLocalizations.tr('heritage_gi_desc', appLang),
                       amount: _formatMoney(heritageVal),

@@ -127,10 +127,17 @@ class BuyerRequestProvider extends ChangeNotifier {
   static const String _prefKey = 'shilpsetu_buyer_requests_cache';
   List<BuyerRequestModel> _requests = [];
   bool _isLoading = false;
+  String? _latestAlert;
 
   List<BuyerRequestModel> get requests => _requests;
   bool get isLoading => _isLoading;
   int get pendingCount => _requests.where((r) => r.status == 'pending').length;
+  String? get latestAlert => _latestAlert;
+
+  void clearLatestAlert() {
+    _latestAlert = null;
+    notifyListeners();
+  }
 
   BuyerRequestProvider() {
     loadRequests();
@@ -164,6 +171,7 @@ class BuyerRequestProvider extends ChangeNotifier {
 
   Future<void> submitRequest(BuyerRequestModel request) async {
     _requests.insert(0, request);
+    _latestAlert = '🔔 New Wholesale Order Request: ${request.quantity}x ${request.productTitle} from ${request.buyerOrg}';
     await _persistRequests();
     notifyListeners();
 

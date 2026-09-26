@@ -240,7 +240,7 @@ class GeminiAIProvider(AIProvider):
     def __init__(self):
         import google.generativeai as genai
         genai.configure(api_key=settings.ai_api_key)
-        self.model = genai.GenerativeModel("gemini-2.0-flash")
+        self.model = genai.GenerativeModel("gemini-2.5-flash")
 
     CATALOG_PROMPT = """You are an expert Indian handicraft cataloger and translator.
     

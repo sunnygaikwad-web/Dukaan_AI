@@ -30,14 +30,15 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
   Future<void> _startProcessing() async {
     for (int i = 0; i < _stages.length; i++) {
-      await Future.delayed(const Duration(milliseconds: 800));
-      if (mounted) {
+      if (!_isProcessing) return;
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (mounted && _isProcessing) {
         setState(() {
           _currentStep = i;
         });
       }
     }
-    await Future.delayed(const Duration(milliseconds: 800));
+    await Future.delayed(const Duration(milliseconds: 150));
     if (mounted) {
       setState(() {
         _isProcessing = false;
@@ -45,11 +46,26 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     }
   }
 
+  void _skipToFinish() {
+    setState(() {
+      _currentStep = _stages.length - 1;
+      _isProcessing = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AI Image Studio'),
+        title: const Text('Craft Photo Studio'),
+        actions: [
+          if (_isProcessing)
+            TextButton.icon(
+              onPressed: _skipToFinish,
+              icon: const Icon(Icons.bolt, color: Colors.amber, size: 18),
+              label: const Text('Instant Finish', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+        ],
       ),
       body: SafeArea(
         child: Padding(
@@ -106,12 +122,20 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                                   Expanded(
                                     child: Container(
                                       decoration: BoxDecoration(
-                                        image: DecorationImage(
-                                          image: FileImage(widget.imageFile),
-                                          fit: BoxFit.cover,
-                                        ),
+                                        image: (widget.imageFile.path.isNotEmpty && widget.imageFile.existsSync())
+                                            ? DecorationImage(
+                                                image: FileImage(widget.imageFile),
+                                                fit: BoxFit.cover,
+                                              )
+                                            : null,
+                                        color: Colors.grey.shade200,
                                         borderRadius: BorderRadius.circular(12),
                                       ),
+                                      child: (widget.imageFile.path.isEmpty || !widget.imageFile.existsSync())
+                                          ? const Center(
+                                              child: Icon(Icons.image_outlined, size: 48, color: Colors.grey),
+                                            )
+                                          : null,
                                     ),
                                   ),
                                 ],
@@ -126,10 +150,13 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                                   Expanded(
                                     child: Container(
                                       decoration: BoxDecoration(
-                                        image: DecorationImage(
-                                          image: FileImage(widget.imageFile), // In real mode, use the enhanced URL
-                                          fit: BoxFit.cover,
-                                        ),
+                                        image: (widget.imageFile.path.isNotEmpty && widget.imageFile.existsSync())
+                                            ? DecorationImage(
+                                                image: FileImage(widget.imageFile),
+                                                fit: BoxFit.cover,
+                                              )
+                                            : null,
+                                        color: Colors.grey.shade100,
                                         borderRadius: BorderRadius.circular(12),
                                         boxShadow: [
                                           BoxShadow(
@@ -139,6 +166,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                                           )
                                         ],
                                       ),
+                                      child: (widget.imageFile.path.isEmpty || !widget.imageFile.existsSync())
+                                          ? const Center(
+                                              child: Icon(Icons.photo_library_rounded, size: 48, color: Colors.green),
+                                            )
+                                          : null,
                                     ),
                                   ),
                                 ],

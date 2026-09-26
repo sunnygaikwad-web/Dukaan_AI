@@ -8,7 +8,11 @@ import '../../../core/providers/user_profile_provider.dart';
 import '../../../core/constants/app_craft_images.dart';
 
 class DigitalMelaScreen extends StatefulWidget {
-  const DigitalMelaScreen({super.key});
+  /// When [showArtisanActions] is true (artisan nav tab), artisan-only
+  /// controls such as "Exhibit Your Craft" / "Add Product" are shown.
+  /// Buyers always see false – they can only browse and place inquiries.
+  final bool showArtisanActions;
+  const DigitalMelaScreen({super.key, this.showArtisanActions = false});
 
   @override
   State<DigitalMelaScreen> createState() => _DigitalMelaScreenState();
@@ -89,7 +93,11 @@ class _DigitalMelaScreenState extends State<DigitalMelaScreen> {
   @override
   Widget build(BuildContext context) {
     final productProvider = context.watch<ProductProvider>();
-    final lang = context.watch<UserProfileProvider>().selectedLanguage;
+    final userProfileProvider = context.watch<UserProfileProvider>();
+    final lang = userProfileProvider.selectedLanguage;
+    final role = userProfileProvider.currentRole;
+    // Buyers never get artisan actions regardless of the widget parameter
+    final isArtisan = widget.showArtisanActions && role == 'artisan';
     final products = productProvider.publishedProducts;
 
     return Scaffold(
@@ -101,6 +109,15 @@ class _DigitalMelaScreenState extends State<DigitalMelaScreen> {
             pinned: true,
             expandedHeight: 180,
             backgroundColor: AppColors.primary,
+            // Show a back button only when accessed as standalone route (buyer)
+            automaticallyImplyLeading: !isArtisan,
+            leading: !isArtisan && Navigator.of(context).canPop()
+                ? IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                        color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
+                  )
+                : null,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: const BoxDecoration(
@@ -134,12 +151,19 @@ class _DigitalMelaScreenState extends State<DigitalMelaScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        _t(
-                          lang,
-                          en: 'Virtual National Exhibition & Wholesale Pavilion',
-                          mr: 'राष्ट्रीय आभासी हस्तकला प्रदर्शन व घाऊक दालन',
-                          hi: 'राष्ट्रीय आभासी हस्तशिल्प प्रदर्शनी एवं थोक मंडप',
-                        ),
+                        isArtisan
+                            ? _t(
+                                lang,
+                                en: 'Virtual National Exhibition & Wholesale Pavilion',
+                                mr: 'राष्ट्रीय आभासी हस्तकला प्रदर्शन व घाऊक दालन',
+                                hi: 'राष्ट्रीय आभासी हस्तशिल्प प्रदर्शनी एवं थोक मंडप',
+                              )
+                            : _t(
+                                lang,
+                                en: 'Browse & Discover Authentic Indian Crafts',
+                                mr: 'अस्सल भारतीय हस्तकला पहा व शोधा',
+                                hi: 'प्रामाणिक भारतीय हस्तशिल्प देखें और खोजें',
+                              ),
                         style: const TextStyle(color: Colors.white70, fontSize: 12.5),
                       ),
                     ],
@@ -430,7 +454,7 @@ class _DigitalMelaScreenState extends State<DigitalMelaScreen> {
                                 ),
                               ),
                               const SizedBox(width: 10),
-                              // Request bulk order button
+                              // Bulk Inquiry – available to everyone (buyers & artisans)
                               Expanded(
                                 child: ElevatedButton.icon(
                                   onPressed: () => _showBulkOrderDialog(context, prod, title, price, lang),
@@ -449,6 +473,23 @@ class _DigitalMelaScreenState extends State<DigitalMelaScreen> {
                               ),
                             ],
                           ),
+                          // Artisan-only: Manage/Edit this product
+                          if (isArtisan) ...[  
+                            const SizedBox(height: 10),
+                            OutlinedButton.icon(
+                              onPressed: () => context.push('/my_products'),
+                              icon: const Icon(Icons.edit_outlined, size: 16, color: AppColors.secondary),
+                              label: Text(
+                                _t(lang, en: 'Manage This Listing', mr: 'उत्पादन व्यवस्थापन', hi: 'लिस्टिंग प्रबंधित करें'),
+                                style: const TextStyle(color: AppColors.secondary, fontSize: 12),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(double.infinity, 40),
+                                side: const BorderSide(color: AppColors.secondary),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     );

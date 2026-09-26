@@ -68,9 +68,9 @@ class AppLocalizations {
       'mr': 'उत्पादने',
     },
     'nav_ai_assist': {
-      'en': 'AI Assist',
-      'hi': 'एआई सहायक',
-      'mr': 'AI मदत',
+      'en': 'Add Craft',
+      'hi': 'शिल्प जोड़ें',
+      'mr': 'कला जोडा',
     },
     'nav_mela': {
       'en': 'Digital Mela',
@@ -125,9 +125,9 @@ class AppLocalizations {
       'mr': '+ नवीन हस्तकला जोडा',
     },
     'add_craft_subtext': {
-      'en': 'Take a photo and let AI do the rest.',
-      'hi': 'एक फोटो लें, बाकी काम AI करेगा।',
-      'mr': 'एक फोटो काढा, बाकी काम AI करेल.',
+      'en': 'Take a photo to list your craft instantly.',
+      'hi': 'एक फोटो लें और तुरंत अपनी शिल्प सूची बनाएं।',
+      'mr': 'एक फोटो काढा आणि त्वरित आपल्या कलेची नोंद करा.',
     },
     'quick_actions': {
       'en': 'Quick Actions',
@@ -175,9 +175,9 @@ class AppLocalizations {
       'mr': 'थेट सुरू',
     },
     'ai_tip_title': {
-      'en': 'AI Tip for Your Craft ✨',
-      'hi': 'आपके शिल्प के लिए AI सुझाव ✨',
-      'mr': 'तुमच्या कलेसाठी AI सल्ला ✨',
+      'en': 'Craft Master Tip',
+      'hi': 'शिल्प गुरु सुझाव',
+      'mr': 'शिल्पकार सल्ला',
     },
     'ai_tip_body': {
       'en': 'Handloom & pottery products are seeing 40% higher global demand this festive season.',
@@ -207,9 +207,9 @@ class AppLocalizations {
       'mr': '२. माहिती',
     },
     'step_review': {
-      'en': '3. AI Review',
-      'hi': '३. समीक्षा',
-      'mr': '३. पुनरावलोकन',
+      'en': '3. Final Review',
+      'hi': '३. अंतिम समीक्षा',
+      'mr': '३. अंतिम तपासणी',
     },
     'take_craft_photo': {
       'en': 'Take a clear photo of your craft',
@@ -217,9 +217,9 @@ class AppLocalizations {
       'mr': 'तुमच्या हस्तकलेचा स्पष्ट फोटो काढा',
     },
     'photo_guide': {
-      'en': 'Place the craft in good natural light. AI will automatically enhance and remove background!',
-      'hi': 'उत्पाद को अच्छी प्राकृतिक रोशनी में रखें। AI अपने आप बैकग्राउंड हटाकर फोटो को आकर्षक बनाएगा!',
-      'mr': 'उत्पादन चांगल्या नैसर्गिक प्रकाशात ठेवा. आमचे AI आपोआप बॅकग्राउंड काढून फोटो सुंदर बनवेल!',
+      'en': 'Place the craft in good natural light. The app will automatically optimize and enhance the photo!',
+      'hi': 'उत्पाद को अच्छी प्राकृतिक रोशनी में रखें। ऐप अपने आप बैकग्राउंड हटाकर फोटो को आकर्षक बनाएगा!',
+      'mr': 'उत्पादन चांगल्या नैसर्गिक प्रकाशात ठेवा. ॲप आपोआप बॅकग्राउंड काढून फोटो सुंदर बनवेल!',
     },
     'camera': {
       'en': 'Camera',
@@ -242,9 +242,9 @@ class AppLocalizations {
       'mr': 'पुन्हा काढा',
     },
     'ai_ready': {
-      'en': 'AI Ready',
-      'hi': 'AI तैयार है',
-      'mr': 'AI सज्ज आहे',
+      'en': 'Verified',
+      'hi': 'सत्यापित',
+      'mr': 'सत्यापित',
     },
     'select_craft_type': {
       'en': 'Select Craft Category',
@@ -272,14 +272,14 @@ class AppLocalizations {
       'mr': 'ऐकत आहोत... (आता बोला)',
     },
     'generate_ai_catalog': {
-      'en': 'Generate AI Catalog ✨',
-      'hi': 'AI कैटलॉग तैयार करें ✨',
-      'mr': 'AI कॅटलॉग तयार करा ✨',
+      'en': 'Generate Craft Catalog',
+      'hi': 'शिल्प कैटलॉग तैयार करें',
+      'mr': 'शिल्प कॅटलॉग तयार करा',
     },
     'generating_catalog': {
-      'en': 'AI is analyzing your craft...',
-      'hi': 'AI आपके शिल्प का विश्लेषण कर रहा है...',
-      'mr': 'AI तुमच्या हस्तकलेचे विश्लेषण करत आहे...',
+      'en': 'Analyzing your craft...',
+      'hi': 'आपके शिल्प का विश्लेषण हो रहा है...',
+      'mr': 'हस्तकलेचे विश्लेषण सुरू आहे...',
     },
     'publish_to_dukaan': {
       'en': 'Publish to ShilpSetu Store',
@@ -299,14 +299,14 @@ class AppLocalizations {
       'mr': 'बहुभाषिक कॅटलॉग',
     },
     'ai_translated_tag': {
-      'en': 'AI Translated',
-      'hi': 'AI अनुवादित',
-      'mr': 'AI भाषांतरित',
+      'en': 'Verified Translation',
+      'hi': 'सत्यापित अनुवाद',
+      'mr': 'तपासलेले भाषांतर',
     },
     'ai_keywords_label': {
-      'en': 'AI Keywords',
-      'hi': 'AI कीवर्ड्स',
-      'mr': 'AI कीवर्ड्स',
+      'en': 'Search Keywords',
+      'hi': 'खोज शब्द',
+      'mr': 'शोध शब्द',
     },
     'category_label': {
       'en': 'Category',
@@ -373,9 +373,9 @@ class AppLocalizations {
       'mr': 'किंमत व कमाईचे गणित',
     },
     'fair_pricing_engine_tag': {
-      'en': 'AI Fair Pricing Engine',
-      'hi': 'AI उचित मूल्य निर्धारण प्रणाली',
-      'mr': 'AI योग्य किंमत प्रणाली',
+      'en': 'Fair Market Value Analysis',
+      'hi': 'उचित मूल्य निर्धारण विश्लेषण',
+      'mr': 'योग्य बाजार किंमत विश्लेषण',
     },
     'fair_pricing_subtitle': {
       'en': 'Optimized for artisan livelihood with 0% platform commission, reflecting true heritage value.',
